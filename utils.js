@@ -88,8 +88,62 @@ function clampPlayer() {
   if (!player.sect) player.sect = "无门无派";
   if (!player.title) player.title = "江湖小虾";
   if (!player.location) player.location = "新手村";
+  if (!player.stamina || typeof player.stamina !== "object") player.stamina = { current: 100, max: 100 };
+  if (!player.vigor || typeof player.vigor !== "object") player.vigor = { current: 100, max: 100 };
+  player.stamina.max = Math.max(30, safeNumber(player.stamina.max, 100));
+  player.vigor.max = Math.max(30, safeNumber(player.vigor.max, 100));
+  player.stamina.current = Math.max(0, Math.min(player.stamina.max, safeNumber(player.stamina.current, player.stamina.max)));
+  player.vigor.current = Math.max(0, Math.min(player.vigor.max, safeNumber(player.vigor.current, player.vigor.max)));
+  if (typeof player.lastRecoveryAt !== "number") player.lastRecoveryAt = Date.now();
+
+  if (!player.martial || typeof player.martial !== "object") player.martial = {};
+  if (!player.martial.mastery || typeof player.martial.mastery !== "object") player.martial.mastery = {};
+  if (!Array.isArray(player.martial.learned)) player.martial.learned = ["basic_fist"];
+  if (!player.martial.activeSkill) player.martial.activeSkill = "basic_fist";
+  if (!Array.isArray(player.skills) || player.skills.length === 0) player.skills = ["ironSkin", "quickSlash"];
+
   player.sectContribution = Math.max(0, safeNumber(player.sectContribution, 0));
   player.sectReputation = Math.max(0, safeNumber(player.sectReputation, 0));
+}
+
+function recoverStamina(amount) {
+  clampPlayer();
+  player.stamina.current = Math.min(player.stamina.max, player.stamina.current + Math.max(0, safeNumber(amount, 0)));
+}
+
+function recoverVigor(amount) {
+  clampPlayer();
+  player.vigor.current = Math.min(player.vigor.max, player.vigor.current + Math.max(0, safeNumber(amount, 0)));
+}
+
+function consumeStamina(amount) {
+  clampPlayer();
+  const need = Math.max(0, safeNumber(amount, 0));
+  if (player.stamina.current < need) return false;
+  player.stamina.current -= need;
+  return true;
+}
+
+function consumeVigor(amount) {
+  clampPlayer();
+  const need = Math.max(0, safeNumber(amount, 0));
+  if (player.vigor.current < need) return false;
+  player.vigor.current -= need;
+  return true;
+}
+
+function applyNaturalRecovery() {
+  clampPlayer();
+  const now = Date.now();
+  const last = safeNumber(player.lastRecoveryAt, now);
+  const elapsedMinutes = Math.floor(Math.max(0, now - last) / 60000);
+  if (elapsedMinutes <= 0) return;
+
+  const staminaGain = Math.min(20, elapsedMinutes * 2);
+  const vigorGain = Math.min(20, elapsedMinutes * 2);
+  recoverStamina(staminaGain);
+  recoverVigor(vigorGain);
+  player.lastRecoveryAt = now;
 }
 
 
@@ -188,6 +242,24 @@ function getAffixLabel(key) {
   return getTermLabel("affix", key);
 }
 
+function getAffixShortLabel(key) {
+  return getTermLabel("affixShort", key) || getAffixLabel(key);
+}
+
+function getEquipAffixSummary(equip) {
+  if (!equip) return "无词缀";
+  const affixes = Array.isArray(equip.affixes) ? equip.affixes : [];
+  if (!affixes.length) return "无词缀";
+  return affixes.slice(0, 2).map((x) => `${getAffixShortLabel(x.key || x.name)}+${x.value}`).join(" ");
+}
+
+function getSpecialEffectText(effect) {
+  if (!effect) return "未知效果";
+  const key = effect.key || effect.name || "";
+  const label = getTermLabel("effect", key);
+  return effect.desc ? `${label}（${effect.desc}）` : label;
+}
+
 
 
 
@@ -253,9 +325,9 @@ function getItemDetailText(name) {
     const defense = e.defense || e.baseStats?.defense || 0;
     const quality = getEquipQualityMeta(e.quality);
     const extras = e.extraStats && typeof e.extraStats === "object"
-      ? Object.keys(e.extraStats).map((key) => `${key}+${e.extraStats[key]}`).join("，")
+      ? Object.keys(e.extraStats).map((key) => `${getStatLabel(key)}+${e.extraStats[key]}`).join("，")
       : "";
-    return `【<span style="color:${quality.color};">${quality.name}</span>装备】攻击+${attack}，防御+${defense}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
+    return `【<span style="color:${quality.color};">${quality.name}</span>装备】攻击+${attack}，防御+${defense}，词缀：${getEquipAffixSummary(e)}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
   }
 
   if (name === "小还丹") return "【丹药】恢复气血20、内力10。";
@@ -378,6 +450,9 @@ function gainExp(amount) {
       onLevelUp(nextLevel) {
         player.hp = getMaxHp();
         player.mp = getMaxMp();
+        if (window.__JH_GAME_ACTIONS__?.updateCombatSkillLoadout) {
+          window.__JH_GAME_ACTIONS__.updateCombatSkillLoadout();
+        }
         addLog("sys", `【突破】你晋升到了第 ${nextLevel} 层境界，真气贯通，状态已全满！`);
         setNotice("success", `升级成功：你已升到 ${nextLevel} 级，状态回满。`);
       }
@@ -511,6 +586,12 @@ function normalizePlayerAfterLoad() {
       player.cultivation = { attack: 0, defense: 0, hp: 0, mp: 0, resist: 0 };
     }
     if (!player.skills) player.skills = ["ironSkin", "quickSlash"];
+    if (!player.martial) player.martial = { title: "", mastery: {}, realm: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
+    if (!Array.isArray(player.martial.learned)) player.martial.learned = ["basic_fist"];
+    if (!player.martial.activeSkill) player.martial.activeSkill = "basic_fist";
+    if (!player.stamina) player.stamina = { current: 100, max: 100 };
+    if (!player.vigor) player.vigor = { current: 100, max: 100 };
+    if (typeof player.lastRecoveryAt !== "number") player.lastRecoveryAt = Date.now();
     if (!Array.isArray(player.activeTasks)) player.activeTasks = [];
     if (!player.taskProgress || typeof player.taskProgress !== "object") player.taskProgress = {};
     if (!Array.isArray(player.completedTasks)) player.completedTasks = [];
@@ -523,6 +604,7 @@ function normalizePlayerAfterLoad() {
   }
 
   clampPlayer();
+  applyNaturalRecovery();
 }
 function migrateSaveData(saveData) {
   if (window.__JH_SAVE_SYSTEM__ && typeof window.__JH_SAVE_SYSTEM__.migrateSaveData === "function") {

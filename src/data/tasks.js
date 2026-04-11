@@ -51,9 +51,18 @@ window.__JH_DATA__.taskTemplates = [
     type: "sect",
     name: "师门勤修",
     minLevel: 8,
-    desc: "完成两次练功，向师门汇报。",
+    desc: "完成两次练功，积累门派贡献用于武功学习与称号晋升。",
     objective: { action: "cultivate", count: 2 },
     reward: { exp: 140, money: 50, sectContribution: 40, sectReputation: 10 }
+  },
+  {
+    id: "sect_002",
+    type: "sect",
+    name: "师门采办",
+    minLevel: 10,
+    desc: "完成三次打工，为师门筹集银两与物资。",
+    objective: { action: "work", count: 3 },
+    reward: { exp: 180, money: 90, sectContribution: 60, sectReputation: 12, items: [{ name: "大还丹", count: 1 }] }
   },
   {
     id: "bounty_001",

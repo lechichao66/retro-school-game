@@ -14,6 +14,9 @@ function defaultPlayer() {
 
     hp: 100,
     mp: 80,
+    stamina: { current: 100, max: 100 },
+    vigor: { current: 100, max: 100 },
+    lastRecoveryAt: Date.now(),
     money: 50,
     exp: 0,
     level: 1,
@@ -46,7 +49,9 @@ function defaultPlayer() {
     martial: {
       title: "",
       mastery: {},
-      realm: {}
+      realm: {},
+      learned: ["basic_fist"],
+      activeSkill: "basic_fist"
     },
     states: [],
     shield: 0,

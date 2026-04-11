@@ -137,11 +137,17 @@
       showPharmacy();
       return;
     }
+    if (!consumeVigor(12)) {
+      setNotice("error", "活力不足（需12点），无法炼制。");
+      showPharmacy();
+      return;
+    }
 
     consumeRecipeMaterials(recipe);
     recipe.action();
     clampPlayer();
 
+    addLog("event", `你炼制了${recipe.name}，消耗活力12点。`);
     setNotice("success", `炼制成功：${recipe.name}`);
     updateAll();
     showPharmacy();

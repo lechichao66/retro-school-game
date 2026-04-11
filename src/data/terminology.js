@@ -33,13 +33,30 @@ window.__JH_DATA__.terminology = {
     dodge: "闪避",
     weak_hit: "破绽追击",
     trueDamage: "真元贯穿",
-    dmgReduce: "护体"
+    dmgReduce: "护体",
+    ice_edge: "寒锋",
+    thorns: "反震"
+  },
+  affixShort: {
+    crit: "会",
+    crit_dmg: "暴",
+    atk_pct: "攻",
+    def_pct: "守",
+    hp_flat: "血",
+    break: "破",
+    speed: "速",
+    dodge: "闪",
+    weak_hit: "弱",
+    trueDamage: "真",
+    dmgReduce: "免",
+    ice_edge: "寒",
+    thorns: "反"
   },
   effect: {
     cold_hit: "寒气侵体",
-    iron_skin: "铁壁",
-    wind_step: "踏风",
+    iron_skin: "铁壁护体",
+    wind_step: "踏风身法",
     skill_boost: "武学精进",
-    stagger: "震慑"
+    stagger: "震慑压制"
   }
 };

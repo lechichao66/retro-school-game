@@ -118,6 +118,37 @@
     }
   }
 
+  function triggerEquipSpecialEffects(currentBattle) {
+    const equipped = Object.values(player.equips || {}).filter(Boolean);
+    equipped.forEach((name) => {
+      const equip = global.equipData?.[name];
+      (equip?.specialEffects || []).forEach((effect) => {
+        const key = effect.key || "";
+        if (key === "cold_hit" && Math.random() < 0.2) {
+          global.__JH_BATTLE_EFFECTS__.addBattleState(currentBattle, { type: "weaken", value: 2, duration: 2 });
+          addLog("event", `【装备特效】${name}触发「寒气侵体」，${currentBattle.name}攻势受抑。`);
+          addBattleLog("event", `装备特效触发：${name}-寒气侵体`);
+        }
+        if (key === "iron_skin" && Math.random() < 0.18) {
+          player.shield = (player.shield || 0) + 6;
+          addLog("event", `【装备特效】${name}触发「铁壁护体」，你获得6点护盾。`);
+          addBattleLog("event", `装备特效触发：${name}-铁壁护体`);
+        }
+        if (key === "wind_step" && Math.random() < 0.16) {
+          const heal = 6;
+          player.hp = Math.min(getMaxHp(), player.hp + heal);
+          addLog("event", `【装备特效】${name}触发「踏风身法」，你闪身回气并恢复${heal}点气血。`);
+          addBattleLog("event", `装备特效触发：${name}-踏风身法`);
+        }
+        if (key === "stagger" && Math.random() < 0.12) {
+          global.__JH_BATTLE_EFFECTS__.addBattleState(currentBattle, { type: "stun", value: 1, duration: 1 });
+          addLog("event", `【装备特效】${name}触发「震慑压制」，${currentBattle.name}短暂失神。`);
+          addBattleLog("event", `装备特效触发：${name}-震慑压制`);
+        }
+      });
+    });
+  }
+
   function renderBattleInHall() {
     updateAll();
     if (currentView === "hall") {
@@ -168,11 +199,13 @@
     const drops = typeof rollDrops === "function" ? rollDrops(monsterName) : [];
     drops.forEach((name) => addItem(name, 1));
     addBattleLog("success", `击败 ${monsterName}，获得银两 ${moneyGain}、经验 ${expGain}${drops.length ? `、掉落 ${drops.join("、")}` : ""}`);
-    if (!player.martial) player.martial = { title: "", mastery: {}, realm: {} };
+    if (!player.martial) player.martial = { title: "", mastery: {}, realm: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
     if (!player.martial.mastery) player.martial.mastery = {};
-    const sectMartial = (global.martialArtsBySect?.[player.sect]?.skills || [])[0];
-    if (sectMartial?.id) {
-      player.martial.mastery[sectMartial.id] = (player.martial.mastery[sectMartial.id] || 0) + (sectMartial.baseMasteryGain || 1);
+    const allSkills = [...(global.martialArtsBySect?.[player.sect]?.skills || []), ...(global.martialArtsBySect?.["无门无派"]?.skills || [])];
+    const activeId = player.martial.activeSkill || "basic_fist";
+    const activeSkill = allSkills.find((x) => x.id === activeId);
+    if (activeSkill?.id) {
+      player.martial.mastery[activeSkill.id] = (player.martial.mastery[activeSkill.id] || 0) + (activeSkill.baseMasteryGain || 1);
     }
     if (typeof global.onMonsterDefeated === "function") {
       global.onMonsterDefeated(monsterName, currentBattle.type || "normal");
@@ -237,6 +270,7 @@
 
     if (!effects.hasState(player, "stun")) {
       let playerAtk = calculatePlayerAttack();
+      triggerEquipSpecialEffects(currentBattle);
       const playerSkillResult = skills.triggerSkills(
         player,
         currentBattle,

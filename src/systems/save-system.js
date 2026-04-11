@@ -53,6 +53,15 @@
     if (typeof playerRef.martial.title !== "string") playerRef.martial.title = "";
     if (!playerRef.martial.mastery || typeof playerRef.martial.mastery !== "object") playerRef.martial.mastery = {};
     if (!playerRef.martial.realm || typeof playerRef.martial.realm !== "object") playerRef.martial.realm = {};
+    if (!Array.isArray(playerRef.martial.learned)) playerRef.martial.learned = ["basic_fist"];
+    if (!playerRef.martial.activeSkill) playerRef.martial.activeSkill = "basic_fist";
+    if (!playerRef.stamina || typeof playerRef.stamina !== "object") playerRef.stamina = { current: 100, max: 100 };
+    if (!playerRef.vigor || typeof playerRef.vigor !== "object") playerRef.vigor = { current: 100, max: 100 };
+    playerRef.stamina.max = Math.max(30, Number(playerRef.stamina.max) || 100);
+    playerRef.vigor.max = Math.max(30, Number(playerRef.vigor.max) || 100);
+    playerRef.stamina.current = Math.max(0, Math.min(playerRef.stamina.max, Number(playerRef.stamina.current) || playerRef.stamina.max));
+    playerRef.vigor.current = Math.max(0, Math.min(playerRef.vigor.max, Number(playerRef.vigor.current) || playerRef.vigor.max));
+    if (typeof playerRef.lastRecoveryAt !== "number") playerRef.lastRecoveryAt = Date.now();
 
     if (!Array.isArray(playerRef.activeTasks)) playerRef.activeTasks = [];
     if (!playerRef.taskProgress || typeof playerRef.taskProgress !== "object") playerRef.taskProgress = {};
