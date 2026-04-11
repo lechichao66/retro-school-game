@@ -206,12 +206,7 @@ function getPowerValue() {
 
 function getEquipText(name, emptyText = "未装备") {
   if (!name) return emptyText;
-
-  const e = (typeof equipData !== "undefined" && equipData[name]) ? equipData[name] : null;
-  if (!e) return name;
-
-  const quality = getEquipQualityMeta(e.quality);
-  return `<span style="color:${quality.color};">[${quality.name}]</span> ${name}`;
+  return getEquipDisplayParts(name).titleHtml;
 }
 
 
@@ -244,6 +239,30 @@ function getAffixLabel(key) {
 
 function getAffixShortLabel(key) {
   return getTermLabel("affixShort", key) || getAffixLabel(key);
+}
+
+function getEquipDisplayParts(name) {
+  const equip = (typeof equipData !== "undefined" && equipData[name]) ? equipData[name] : null;
+  if (!equip) {
+    return { name, qualityText: "凡品", qualityColor: "#9ca3af", affixShort: "无词缀", affixFull: "无词缀", specialText: "无", titleHtml: name };
+  }
+  const quality = getEquipQualityMeta(equip.quality);
+  const affixes = Array.isArray(equip.affixes) ? equip.affixes : [];
+  const effects = Array.isArray(equip.specialEffects) ? equip.specialEffects : [];
+  const affixShort = affixes.length ? affixes.map((x) => `${getAffixShortLabel(x.key || x.name)}+${x.value}`).join(" ") : "无词缀";
+  const affixFull = affixes.length ? affixes.map((x) => `${getAffixLabel(x.key || x.name)}+${x.value}`).join("，") : "无词缀";
+  const specialText = effects.length ? effects.map((x) => getSpecialEffectText(x)).join("，") : "无";
+  const qualityText = quality.name || "凡品";
+  return {
+    name,
+    equip,
+    qualityText,
+    qualityColor: quality.color || "#9ca3af",
+    affixShort,
+    affixFull,
+    specialText,
+    titleHtml: `<span style="color:${quality.color};">[${qualityText}]</span> ${name}`
+  };
 }
 
 function getEquipAffixSummary(equip) {
@@ -320,14 +339,14 @@ function getItemDetailText(name) {
   }
 
   if (typeof equipData !== "undefined" && equipData[name]) {
-    const e = equipData[name];
+    const info = getEquipDisplayParts(name);
+    const e = info.equip;
     const attack = e.attack || e.baseStats?.attack || 0;
     const defense = e.defense || e.baseStats?.defense || 0;
-    const quality = getEquipQualityMeta(e.quality);
     const extras = e.extraStats && typeof e.extraStats === "object"
       ? Object.keys(e.extraStats).map((key) => `${getStatLabel(key)}+${e.extraStats[key]}`).join("，")
       : "";
-    return `【<span style="color:${quality.color};">${quality.name}</span>装备】攻击+${attack}，防御+${defense}，词缀：${getEquipAffixSummary(e)}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
+    return `【<span style="color:${info.qualityColor};">${info.qualityText}</span>装备】攻击+${attack}，防御+${defense}，词缀：${info.affixShort}，详情词缀：${info.affixFull}，特殊：${info.specialText}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
   }
 
   if (name === "小还丹") return "【丹药】恢复气血20、内力10。";
