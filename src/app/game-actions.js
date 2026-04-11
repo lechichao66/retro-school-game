@@ -1,6 +1,96 @@
 (function initGameActions(global) {
   const g = global || window;
 
+  function ensureTaskState() {
+    if (!Array.isArray(player.activeTasks)) player.activeTasks = [];
+    if (!player.taskProgress || typeof player.taskProgress !== "object") player.taskProgress = {};
+    if (!Array.isArray(player.completedTasks)) player.completedTasks = [];
+  }
+
+  function getTaskById(taskId) {
+    return (taskTemplates || []).find((x) => x.id === taskId) || null;
+  }
+
+  function grantTaskReward(task) {
+    const reward = task.reward || {};
+    if (reward.money) player.money += reward.money;
+    if (reward.exp) gainExp(reward.exp);
+    if (reward.sectContribution) player.sectContribution += reward.sectContribution;
+    if (reward.sectReputation) player.sectReputation += reward.sectReputation;
+    (reward.items || []).forEach((x) => addItem(x.name, x.count || 1));
+  }
+
+  function acceptTask(taskId) {
+    ensureTaskState();
+    const task = getTaskById(taskId);
+    if (!task) return;
+    if (player.level < (task.minLevel || 1)) {
+      setNotice("error", `接取失败：需要 ${task.minLevel} 级。`);
+      showTask();
+      return;
+    }
+    if (player.activeTasks.includes(taskId)) {
+      setNotice("info", "该任务已在进行中。");
+      showTask();
+      return;
+    }
+    player.activeTasks.push(taskId);
+    if (typeof player.taskProgress[taskId] !== "number") player.taskProgress[taskId] = 0;
+    addLog("sys", `你接取了任务【${task.name}】。`);
+    setNotice("success", `接取成功：${task.name}`);
+    showTask();
+  }
+
+  function claimTask(taskId) {
+    ensureTaskState();
+    const task = getTaskById(taskId);
+    if (!task) return;
+    const target = task.objective?.count || 1;
+    const progress = player.taskProgress[taskId] || 0;
+    if (progress < target) {
+      setNotice("error", "任务未完成，无法提交。");
+      showTask();
+      return;
+    }
+    grantTaskReward(task);
+    player.activeTasks = player.activeTasks.filter((x) => x !== taskId);
+    player.completedTasks.push(taskId);
+    addLog("success", `任务完成【${task.name}】。`);
+    setNotice("success", `已提交任务：${task.name}`);
+    updateAll();
+    showTask();
+  }
+
+  function onMonsterDefeated(monsterName, monsterType) {
+    ensureTaskState();
+    player.activeTasks.forEach((taskId) => {
+      const task = getTaskById(taskId);
+      if (!task) return;
+      const obj = task.objective || {};
+      if (obj.action === "kill" && obj.target === monsterName) player.taskProgress[taskId] = (player.taskProgress[taskId] || 0) + 1;
+      if (obj.action === "kill_type" && obj.target === monsterType) player.taskProgress[taskId] = (player.taskProgress[taskId] || 0) + 1;
+    });
+  }
+
+  function onPlayerActionProgress(action, payload) {
+    ensureTaskState();
+    player.activeTasks.forEach((taskId) => {
+      const task = getTaskById(taskId);
+      if (!task) return;
+      const obj = task.objective || {};
+      if (obj.action === action) player.taskProgress[taskId] = (player.taskProgress[taskId] || 0) + 1;
+      if (obj.action === "collect" && action === "collect" && obj.target === payload?.name) {
+        player.taskProgress[taskId] = Math.min(obj.count || 1, (player.taskProgress[taskId] || 0) + (payload?.count || 1));
+      }
+    });
+  }
+
+  function applySectSkills(sectName) {
+    const sect = (sectList || []).find((x) => x.name === sectName);
+    const baseSkills = ["ironSkin", "quickSlash"];
+    player.skills = [...new Set([...(sect?.starterSkills || []), ...baseSkills])];
+  }
+
   function fakeChat() {
     const texts = [
       `【闲聊】${player.name}：初入江湖，请多关照。`,
@@ -42,6 +132,7 @@
 
     addLog("event", `你辛苦劳作了一阵，银两 +${income}，经验 +10。`);
     setNotice("success", `打工成功：银两 +${income}，经验 +10。`);
+    onPlayerActionProgress("bubble");
     updateAll();
     refreshCurrentView();
   }
@@ -172,6 +263,7 @@
     }
 
     player.sect = sect.name;
+    applySectSkills(sect.name);
     addLog("sys", `你已加入 ${sect.name}。`);
     setNotice("success", `加入门派成功：${sect.name}`);
     updateAll();
@@ -200,6 +292,7 @@
     if (player.job === "采冰") {
       loseHp(6);
       addItem("冰水", 1);
+      onPlayerActionProgress("collect", { name: "冰水", count: 1 });
       player.money += 2;
       gainExp(10);
       addLog("event", "你辛苦采来一份冰水。获得【冰水 x1】，银两 +2，经验 +10。");
@@ -207,6 +300,7 @@
     } else if (player.job === "采矿") {
       loseHp(8);
       addItem("矿石", 1);
+      onPlayerActionProgress("collect", { name: "矿石", count: 1 });
       player.money += 3;
       gainExp(12);
       addLog("event", "你在矿洞挖到一块矿石。获得【矿石 x1】，银两 +3，经验 +12。");
@@ -214,6 +308,7 @@
     } else if (player.job === "伐木") {
       loseHp(7);
       addItem("木头", 1);
+      onPlayerActionProgress("collect", { name: "木头", count: 1 });
       player.money += 3;
       gainExp(11);
       addLog("event", "你砍下了一段木材。获得【木头 x1】，银两 +3，经验 +11。");
@@ -408,6 +503,10 @@
     joinSect,
     chooseJob,
     doJob,
+    acceptTask,
+    claimTask,
+    onMonsterDefeated,
+    onPlayerActionProgress,
     saveGameBtn,
     loadGameBtn,
     resetGameBtn,

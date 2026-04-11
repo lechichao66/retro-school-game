@@ -37,6 +37,7 @@ function showMarket() { return window.__JH_UI_RENDER__.showMarket(); }
 function showSect() { return window.__JH_UI_RENDER__.showSect(); }
 function showRank() { return window.__JH_UI_RENDER__.showRank(); }
 function showJob() { return window.__JH_UI_RENDER__.showJob(); }
+function showTask() { return window.__JH_UI_RENDER__.showTask(); }
 function showPharmacy() { return window.__JH_UI_RENDER__.showPharmacy(); }
 function showTrain() { return window.__JH_UI_RENDER__.showTrain(); }
 function doCultivationUpgrade(type) { return window.__JH_UI_RENDER__.doCultivationUpgrade(type); }
@@ -66,6 +67,8 @@ function craftMedicine(index) { return window.__JH_ECONOMY_BAG__.craftMedicine(i
 function joinSect(index) { return window.__JH_GAME_ACTIONS__.joinSect(index); }
 function chooseJob(index) { return window.__JH_GAME_ACTIONS__.chooseJob(index); }
 function doJob() { return window.__JH_GAME_ACTIONS__.doJob(); }
+function acceptTask(taskId) { return window.__JH_GAME_ACTIONS__.acceptTask(taskId); }
+function claimTask(taskId) { return window.__JH_GAME_ACTIONS__.claimTask(taskId); }
 function saveGameBtn() { return window.__JH_GAME_ACTIONS__.saveGameBtn(); }
 function loadGameBtn() { return window.__JH_GAME_ACTIONS__.loadGameBtn(); }
 function resetGameBtn() { return window.__JH_GAME_ACTIONS__.resetGameBtn(); }
@@ -86,6 +89,7 @@ window.showMarket = showMarket;
 window.showSect = showSect;
 window.showRank = showRank;
 window.showJob = showJob;
+window.showTask = showTask;
 window.showPharmacy = showPharmacy;
 
 window.train = train;
@@ -109,6 +113,12 @@ window.craftMedicine = craftMedicine;
 window.joinSect = joinSect;
 window.chooseJob = chooseJob;
 window.doJob = doJob;
+window.acceptTask = acceptTask;
+window.claimTask = claimTask;
+window.showEquipDetail = function showEquipDetail(slot) { return window.__JH_UI_RENDER__.showEquipDetail(slot); };
+window.setShopCategory = function setShopCategory(category) { return window.__JH_UI_RENDER__.setShopCategory(category); };
+window.onMonsterDefeated = function onMonsterDefeated(name, type) { return window.__JH_GAME_ACTIONS__.onMonsterDefeated(name, type); };
+window.onPlayerActionProgress = function onPlayerActionProgress(action, payload) { return window.__JH_GAME_ACTIONS__.onPlayerActionProgress(action, payload); };
 
 window.saveGame = saveGameBtn;
 window.loadGame = loadGameBtn;

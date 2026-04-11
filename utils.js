@@ -144,10 +144,10 @@ function getPowerValue() {
   const maxHp = getMaxHp();
   const maxMp = getMaxMp();
 
-  const levelScore = (player.level || 1) * 500;
-  const baseScore = Math.floor(maxHp * 2 + maxMp * 5);
-  const equipScore = bonus.attack * 20 + bonus.defense * 15;
-  const expScore = Math.floor((player.exp || 0) * 0.5);
+  const levelScore = (player.level || 1) * 120;
+  const baseScore = Math.floor(maxHp * 0.9 + maxMp * 1.2);
+  const equipScore = bonus.attack * 8 + bonus.defense * 6;
+  const expScore = Math.floor((player.exp || 0) * 0.2);
 
   return levelScore + baseScore + equipScore + expScore;
 }
@@ -177,6 +177,17 @@ function getEquipQualityText(qualityKey) {
 }
 
 
+
+
+function getSectByName(name) {
+  if (!Array.isArray(sectList)) return null;
+  return sectList.find((x) => x.name === name) || null;
+}
+
+function getSectCombatBonus() {
+  const sect = getSectByName(player?.sect);
+  return sect?.bonus || { atkRate: 0, defRate: 0 };
+}
 
 // ===== 4. 背包与物品工具 =====
 function getBagText() {
@@ -478,6 +489,9 @@ function normalizePlayerAfterLoad() {
       player.cultivation = { attack: 0, defense: 0, hp: 0, mp: 0, resist: 0 };
     }
     if (!player.skills) player.skills = ["ironSkin", "quickSlash"];
+    if (!Array.isArray(player.activeTasks)) player.activeTasks = [];
+    if (!player.taskProgress || typeof player.taskProgress !== "object") player.taskProgress = {};
+    if (!Array.isArray(player.completedTasks)) player.completedTasks = [];
     if (!player.currentMap) player.currentMap = player.location || "新手村";
     player.level = safeNumber(player.level, 1);
     player.hp = safeNumber(player.hp, getMaxHp());
