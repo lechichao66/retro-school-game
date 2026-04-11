@@ -26,18 +26,21 @@
     let defense = 0;
 
     if (equips.weapon && data[equips.weapon]) {
-      attack += data[equips.weapon].attack || 0;
-      defense += data[equips.weapon].defense || 0;
+      const weapon = data[equips.weapon];
+      attack += weapon.attack || weapon.baseStats?.attack || 0;
+      defense += weapon.defense || weapon.baseStats?.defense || 0;
     }
 
     if (equips.armor && data[equips.armor]) {
-      attack += data[equips.armor].attack || 0;
-      defense += data[equips.armor].defense || 0;
+      const armor = data[equips.armor];
+      attack += armor.attack || armor.baseStats?.attack || 0;
+      defense += armor.defense || armor.baseStats?.defense || 0;
     }
 
     if (equips.shoes && data[equips.shoes]) {
-      attack += data[equips.shoes].attack || 0;
-      defense += data[equips.shoes].defense || 0;
+      const shoes = data[equips.shoes];
+      attack += shoes.attack || shoes.baseStats?.attack || 0;
+      defense += shoes.defense || shoes.baseStats?.defense || 0;
     }
 
     if (typeof g.getCultivationBonus === "function") {

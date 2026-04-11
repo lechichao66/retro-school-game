@@ -30,6 +30,8 @@
     if (!playerRef.title) playerRef.title = "江湖小虾";
     if (!playerRef.job) playerRef.job = "无职业";
     if (!playerRef.location) playerRef.location = "新手村";
+    playerRef.sectContribution = Math.max(0, Number(playerRef.sectContribution) || 0);
+    playerRef.sectReputation = Math.max(0, Number(playerRef.sectReputation) || 0);
 
     if (!playerRef.inventory || typeof playerRef.inventory !== "object") playerRef.inventory = {};
     if (!playerRef.equips || typeof playerRef.equips !== "object") {

@@ -78,6 +78,8 @@ function clampPlayer() {
   if (!player.sect) player.sect = "无门无派";
   if (!player.title) player.title = "江湖小虾";
   if (!player.location) player.location = "新手村";
+  player.sectContribution = Math.max(0, safeNumber(player.sectContribution, 0));
+  player.sectReputation = Math.max(0, safeNumber(player.sectReputation, 0));
 }
 
 
@@ -91,18 +93,21 @@ function getEquipBonus() {
   let defense = 0;
 
   if (player.equips.weapon && equipData[player.equips.weapon]) {
-    attack += equipData[player.equips.weapon].attack || 0;
-    defense += equipData[player.equips.weapon].defense || 0;
+    const weapon = equipData[player.equips.weapon];
+    attack += weapon.attack || weapon.baseStats?.attack || 0;
+    defense += weapon.defense || weapon.baseStats?.defense || 0;
   }
 
   if (player.equips.armor && equipData[player.equips.armor]) {
-    attack += equipData[player.equips.armor].attack || 0;
-    defense += equipData[player.equips.armor].defense || 0;
+    const armor = equipData[player.equips.armor];
+    attack += armor.attack || armor.baseStats?.attack || 0;
+    defense += armor.defense || armor.baseStats?.defense || 0;
   }
 
   if (player.equips.shoes && equipData[player.equips.shoes]) {
-    attack += equipData[player.equips.shoes].attack || 0;
-    defense += equipData[player.equips.shoes].defense || 0;
+    const shoes = equipData[player.equips.shoes];
+    attack += shoes.attack || shoes.baseStats?.attack || 0;
+    defense += shoes.defense || shoes.baseStats?.defense || 0;
   }
 
   if (typeof getCultivationBonus === "function") {
@@ -182,7 +187,9 @@ function getItemDetailText(name) {
 
   if (typeof equipData !== "undefined" && equipData[name]) {
     const e = equipData[name];
-    return `【装备】攻击+${e.attack || 0}，防御+${e.defense || 0}。${e.desc || ""}`;
+    const attack = e.attack || e.baseStats?.attack || 0;
+    const defense = e.defense || e.baseStats?.defense || 0;
+    return `【${e.quality || "common"}装备】攻击+${attack}，防御+${defense}。${e.desc || ""}`;
   }
 
   if (name === "小还丹") return "【丹药】恢复气血20、内力10。";

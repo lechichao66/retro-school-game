@@ -7,10 +7,13 @@ const __DATA = window.__JH_DATA__ || {};
 
 const onlinePlayers = __DATA.onlinePlayers || [];
 const equipData = __DATA.equipData || {};
+const equipQualityConfig = __DATA.equipQualityConfig || {};
 const shopItems = __DATA.shopItems || [];
 const marketItems = __DATA.marketItems || [];
 const sectList = __DATA.sectList || [];
 const jobList = __DATA.jobList || [];
+const taskTypeEnum = __DATA.taskTypeEnum || {};
+const taskTypeList = __DATA.taskTypeList || [];
 const monsterList = __DATA.monsterList || [];
 const mapData = __DATA.mapData || {};
 const dropTable = __DATA.dropTable || {};

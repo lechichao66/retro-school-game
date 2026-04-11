@@ -8,6 +8,8 @@
       title: "江湖小虾",
       job: "无职业",
       location: "新手村",
+      sectContribution: 0,
+      sectReputation: 0,
 
       hp: 100,
       mp: 80,
@@ -60,6 +62,8 @@
       title: p.title,
       job: p.job,
       location: p.location,
+      sectContribution: p.sectContribution || 0,
+      sectReputation: p.sectReputation || 0,
       hp: p.hp,
       maxHp: typeof g.getMaxHp === "function" ? g.getMaxHp() : p.hp,
       mp: p.mp,
