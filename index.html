@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>少年江湖 v1.2</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page">
+    <div class="top-bar">
+      <div class="logo-area">
+        <h1>少年江湖</h1>
+        <p>2000年代文字网页江湖风格 · 单机版 v1.2</p>
+      </div>
+      <div class="player-bar">
+        <div>姓名：<span id="playerName"></span></div>
+        <div>门派：<span id="sect"></span></div>
+        <div>称号：<span id="title"></span></div>
+        <div>气血：<span id="hp"></span></div>
+        <div>内力：<span id="mp"></span></div>
+        <div>银两：<span id="money"></span></div>
+        <div>经验：<span id="exp"></span></div>
+        <div>等级：<span id="level"></span></div>
+      </div>
+    </div>
+
+    <div class="main-layout">
+      <div class="center-panel">
+        <div class="panel-title" id="mainTitle">江湖大厅</div>
+        <div id="mainContent" class="main-content"></div>
+      </div>
+
+      <div class="right-panel">
+        <div class="panel-title">在线名单</div>
+        <div id="onlineList" class="online-list"></div>
+      </div>
+    </div>
+
+    <div class="bottom-menu">
+      <button onclick="showHall()">大厅</button>
+      <button onclick="showStatus()">状态</button>
+      <button onclick="showBag()">背包</button>
+      <button onclick="showEquip()">装备</button>
+      <button onclick="showShop()">商城</button>
+      <button onclick="showMarket()">寄售行</button>
+      <button onclick="showSect()">门派</button>
+      <button onclick="showRank()">排行</button>
+      <button onclick="showJob()">职业</button>
+      <button onclick="showPharmacy()">药房</button>
+      <button onclick="train()">练功</button>
+      <button onclick="work()">打工</button>
+      <button onclick="luck()">运气</button>
+      <button onclick="adventure()">闯荡</button>
+      <button onclick="rest()">休息</button>
+      <button onclick="saveGame()">存档</button>
+      <button onclick="loadGame()">读档</button>
+      <button onclick="resetGame()">重开</button>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+<script src="utils.js"></script>
+<script src="player.js"></script>
+<script src="cultivation.js"></script>
+<script src="map.js"></script>
+<script src="battle.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
