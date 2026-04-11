@@ -1,17 +1,79 @@
-(function initPlayerStateBridge(global) {
+(function initPlayerState(global) {
   const g = global || window;
+
+  function createDefaultPlayer() {
+    return {
+      name: "无名少侠",
+      sect: "无门无派",
+      title: "江湖小虾",
+      job: "无职业",
+      location: "新手村",
+
+      hp: 100,
+      mp: 80,
+      money: 50,
+      exp: 0,
+      level: 1,
+
+      inventory: {
+        小还丹: 2,
+        干粮: 2,
+        木剑: 1
+      },
+
+      equips: {
+        weapon: "",
+        armor: "",
+        shoes: ""
+      },
+
+      cultivation: {
+        attack: 0,
+        defense: 0,
+        hp: 0,
+        mp: 0,
+        resist: 0
+      },
+
+      skills: ["ironSkin", "quickSlash"],
+      states: [],
+      shield: 0,
+      currentMap: "新手村"
+    };
+  }
 
   function getPlayerSafe() {
     return g.player || null;
   }
 
   function setPlayerSafe(nextPlayer) {
-    if (!nextPlayer || typeof nextPlayer !== "object") return;
+    if (!nextPlayer || typeof nextPlayer !== "object") return g.player || null;
     g.player = nextPlayer;
+    return g.player;
+  }
+
+  function getPlayerPanelDataSafe() {
+    const p = g.player || createDefaultPlayer();
+    return {
+      name: p.name,
+      sect: p.sect,
+      title: p.title,
+      job: p.job,
+      location: p.location,
+      hp: p.hp,
+      maxHp: typeof g.getMaxHp === "function" ? g.getMaxHp() : p.hp,
+      mp: p.mp,
+      maxMp: typeof g.getMaxMp === "function" ? g.getMaxMp() : p.mp,
+      money: p.money,
+      exp: p.exp,
+      level: p.level
+    };
   }
 
   g.__JH_PLAYER_STATE__ = {
+    createDefaultPlayer,
     getPlayerSafe,
-    setPlayerSafe
+    setPlayerSafe,
+    getPlayerPanelDataSafe
   };
 })(window);

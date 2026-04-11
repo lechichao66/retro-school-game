@@ -2,6 +2,13 @@
   const g = global || window;
 
   function ensureRuntimeState() {
+    if (g.__JH_RUNTIME_STATE__ && typeof g.__JH_RUNTIME_STATE__.ensureRuntimeState === "function") {
+      g.__JH_RUNTIME_STATE__.ensureRuntimeState();
+      return;
+    }
+
+    if (!Array.isArray(g.logs)) g.logs = [];
+    if (!g.uiNotice || typeof g.uiNotice !== "object") g.uiNotice = { type: "info", text: "" };
     if (!Array.isArray(g.logs)) g.logs = [];
     if (!g.uiNotice || typeof g.uiNotice !== "object") {
       g.uiNotice = { type: "info", text: "" };

@@ -1,4 +1,8 @@
 function defaultPlayer() {
+  if (window.__JH_PLAYER_STATE__ && typeof window.__JH_PLAYER_STATE__.createDefaultPlayer === "function") {
+    return window.__JH_PLAYER_STATE__.createDefaultPlayer();
+  }
+
   return {
     name: "无名少侠",
     sect: "无门无派",
@@ -33,16 +37,22 @@ function defaultPlayer() {
     },
 
     skills: ["ironSkin", "quickSlash"],
-    
     states: [],
     shield: 0,
     currentMap: "新手村"
   };
 }
 
-let player = defaultPlayer();
+var player = (window.__JH_PLAYER_STATE__ && window.__JH_PLAYER_STATE__.getPlayerSafe && window.__JH_PLAYER_STATE__.getPlayerSafe()) || defaultPlayer();
+if (window.__JH_PLAYER_STATE__ && typeof window.__JH_PLAYER_STATE__.setPlayerSafe === "function") {
+  window.__JH_PLAYER_STATE__.setPlayerSafe(player);
+}
 
 function getPlayerPanelData() {
+  if (window.__JH_PLAYER_STATE__ && typeof window.__JH_PLAYER_STATE__.getPlayerPanelDataSafe === "function") {
+    return window.__JH_PLAYER_STATE__.getPlayerPanelDataSafe();
+  }
+
   return {
     name: player.name,
     sect: player.sect,

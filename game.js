@@ -7,16 +7,16 @@
 
 // ===== 1. 玩家与全局状态 =====
 
-let logs = [
+var logs = [
   { type: "sys", text: "欢迎进入少年江湖。这里是单机怀旧版江湖大厅。", time: getNowTime() }
 ];
 
-let uiNotice = {
+var uiNotice = {
   type: "sys",
   text: "欢迎来到少年江湖。"
 };
 
-let currentView = "hall";
+var currentView = "hall";
 
 
 // ===== 2. 顶部栏与基础 UI =====
@@ -1064,6 +1064,13 @@ window.doCultivationUpgrade = doCultivationUpgrade;
 // ===== 10. 初始化 =====
 window.onload = function () {
   try {
+    if (window.__JH_RUNTIME_STATE__ && typeof window.__JH_RUNTIME_STATE__.ensureRuntimeState === "function") {
+      window.__JH_RUNTIME_STATE__.ensureRuntimeState();
+      logs = window.__JH_RUNTIME_STATE__.getLogs();
+      uiNotice = window.__JH_RUNTIME_STATE__.getNotice();
+      currentView = window.__JH_RUNTIME_STATE__.getCurrentView();
+    }
+
     normalizePlayerAfterLoad();
     normalizeLogs();
     updateAll();
