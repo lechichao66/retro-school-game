@@ -5,8 +5,7 @@ window.__JH_DATA__.taskTypeEnum = {
   SIDE: "side",
   DAILY: "daily",
   SECT: "sect",
-  BOUNTY: "bounty",
-  TREASURE_CHAIN: "treasure_chain"
+  BOUNTY: "bounty"
 };
 
 window.__JH_DATA__.taskTypeList = [
@@ -14,6 +13,5 @@ window.__JH_DATA__.taskTypeList = [
   { key: "side", name: "支线", desc: "补充角色故事与额外奖励。" },
   { key: "daily", name: "日常", desc: "每日重置，可持续获取资源。" },
   { key: "sect", name: "师门", desc: "门派循环任务，产出门派相关成长。" },
-  { key: "bounty", name: "悬赏", desc: "限时或随机目标，奖励偏向银两与声望。" },
-  { key: "treasure_chain", name: "宝图事件链", desc: "预留：用于多段藏宝图事件链。" }
+  { key: "bounty", name: "悬赏", desc: "随机目标，奖励偏向银两与声望。" }
 ];

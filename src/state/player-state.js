@@ -42,6 +42,9 @@
       },
 
       skills: ["ironSkin", "quickSlash"],
+      activeTasks: [],
+      taskProgress: {},
+      completedTasks: [],
       states: [],
       shield: 0,
       currentMap: "新手村"

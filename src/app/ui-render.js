@@ -71,6 +71,7 @@
       job: showJob,
       pharmacy: showPharmacy,
       train: showTrain,
+      task: showTask,
       changelog: showChangelog,
       debug: showDebugPanel,
       encounter: () => {
@@ -107,7 +108,7 @@
       ${renderNoticeHtml()}
 
       <div style="background:#f9f9f9; padding:10px; border-left:4px solid #800000; margin-bottom:10px; font-size:0.95em;">
-        <b>当前地界：</b>${mapInfo ? mapInfo.desc : "神秘区域"}
+        <b>当前地界：</b>${mapInfo ? mapInfo.desc : "神秘区域"}<br><b>推荐等级：</b>${mapInfo?.levelRange || "未知"}
       </div>
 
       <div class="shop-actions">
@@ -221,6 +222,8 @@
       ["necklace", "项链", "无项链"],
       ["artifact", "法宝", "无法宝"]
     ];
+    const detailSlot = g.currentEquipDetailSlot || "";
+    const detailName = player.equips[detailSlot] || "";
 
     setMainTitle("装备栏");
     setMainContent(`
@@ -228,7 +231,7 @@
       <div class="status-grid">
         <div class="card">
           <h3>当前装备（7部位）</h3>
-          ${slotRows.map(([slot, name, emptyName]) => `<div class="list-line">${name}：${getEquipText(player.equips[slot], emptyName)}</div>`).join("")}
+          ${slotRows.map(([slot, name, emptyName]) => `<div class="list-line">${name}：${getEquipText(player.equips[slot], emptyName)} ${player.equips[slot] ? `<button class="small-btn" onclick="showEquipDetail('${slot}')">查看详情</button>` : ""}</div>`).join("")}
         </div>
         <div class="card">
           <h3>装备总加成</h3>
@@ -240,15 +243,77 @@
       <div class="shop-actions">
         ${slotRows.map(([slot, name]) => `<button class="action-btn" onclick="unequipSlot('${slot}')">卸下${name}</button>`).join("")}
       </div>
+      <div class="card" style="margin-top:10px;">
+        <h3>装备详情面板</h3>
+        ${detailName ? getEquipDetailPanel(detailName) : "<div class='list-line'>请选择一件已装备物品查看详情。</div>"}
+      </div>
     `);
   }
-  function showShop() { currentView = "shop"; const rows = shopItems.map((item, i) => `<tr><td>${item.name}</td><td>${item.desc}</td><td>${item.price}</td><td>${item.type === "equip" ? "装备" : "物品"}</td><td><button class="small-btn" onclick="buyShopItem(${i})">购买</button></td></tr>`).join(""); setMainTitle("江湖商城"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>商品</th><th>说明</th><th>价格</th><th>类型</th><th>购买</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
+
+  function getEquipDetailPanel(name) {
+    const equip = equipData[name];
+    if (!equip) return "<div class='list-line'>该装备数据不存在。</div>";
+
+    const quality = getEquipQualityMeta(equip.quality);
+    const baseAttack = equip.baseStats?.attack || equip.attack || 0;
+    const baseDefense = equip.baseStats?.defense || equip.defense || 0;
+    const affixes = Array.isArray(equip.affixes) ? equip.affixes : [];
+    const effects = Array.isArray(equip.specialEffects) ? equip.specialEffects : [];
+    const extraStats = equip.extraStats && typeof equip.extraStats === "object"
+      ? Object.entries(equip.extraStats).map(([k, v]) => `${k}+${v}`).join("，")
+      : "无";
+
+    return `
+      <div class="list-line"><b style="color:${quality.color}">[${quality.name}] ${name}</b></div>
+      <div class="list-line">基础属性：攻击 +${baseAttack} / 防御 +${baseDefense}</div>
+      <div class="list-line">额外属性：${extraStats}</div>
+      <div class="list-line">词缀：${affixes.length ? affixes.map((x) => `${x.name}+${x.value}`).join("，") : "无"}</div>
+      <div class="list-line">特殊效果：${effects.length ? effects.map((x) => x.name).join("，") : "无"}</div>
+      <div class="list-line">说明：${equip.desc || "暂无"}</div>
+    `;
+  }
+
+  function showShop() {
+    currentView = "shop";
+    const selectedCategory = g.shopCategory || "全部";
+    const categories = ["全部", ...new Set(shopItems.map((x) => x.category || (x.type === "equip" ? "装备" : "杂货")))];
+    const filtered = selectedCategory === "全部" ? shopItems : shopItems.filter((x) => (x.category || (x.type === "equip" ? "装备" : "杂货")) === selectedCategory);
+    const rows = filtered.map((item) => {
+      const idx = shopItems.findIndex((x) => x.name === item.name);
+      return `<tr><td>${item.name}</td><td>${item.desc}</td><td>${item.price}</td><td>${item.category || "杂货"}</td><td><button class="small-btn" onclick="buyShopItem(${idx})">购买</button></td></tr>`;
+    }).join("");
+
+    setMainTitle("江湖商城");
+    setMainContent(`${renderNoticeHtml()}
+      <div class="shop-actions">${categories.map((c) => `<button class="action-btn" style="background:${c === selectedCategory ? "#800000" : "#f2e9d8"}; color:${c === selectedCategory ? "#fff" : "#222"};" onclick="setShopCategory('${c}')">${c}</button>`).join("")}</div>
+      <div class="table-box scroll-box"><table><thead><tr><th>商品</th><th>说明</th><th>价格</th><th>分类</th><th>购买</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>该分类暂无商品</td></tr>"}</tbody></table></div>`);
+  }
   function showMarket() { currentView = "market"; const rows = marketItems.map(item => `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.price}</td><td>${item.seller}</td><td><button class="small-btn" onclick="buyMarketItem('${item.name}', ${item.price})">购买</button></td></tr>`).join(""); setMainTitle("江湖寄售行"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>物品</th><th>数量</th><th>单价</th><th>卖家</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
   function showSect() { currentView = "sect"; const rows = sectList.map((item, i) => `<tr><td>${item.name}</td><td>${item.req}</td><td>${item.intro}</td><td><button class="small-btn" onclick="joinSect(${i})">加入</button></td></tr>`).join(""); setMainTitle("江湖门派"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>门派</th><th>要求</th><th>简介</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
   function showRank() { currentView = "rank"; const rankData = [{ name: player.name, value: getPowerValue(), tag: "当前角色" }, { name: "秋风", value: 860, tag: "唐门" }, { name: "断水", value: 780, tag: "武当" }, { name: "孤城", value: 730, tag: "幽月宫" }, { name: "听雪", value: 650, tag: "世外桃源" }].sort((a, b) => b.value - a.value); const rows = rankData.map((item, i) => `<tr><td>${i + 1}</td><td>${item.name}</td><td>${item.value}</td><td>${item.tag}</td></tr>`).join(""); setMainTitle("江湖排行"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>排名</th><th>玩家</th><th>综合值</th><th>备注</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
   function showJob() { currentView = "job"; const rows = jobList.map((item, i) => `<tr><td>${item.name}</td><td>${item.intro}</td><td>${item.gain}</td><td><button class="small-btn" onclick="chooseJob(${i})">入职</button></td></tr>`).join(""); setMainTitle("江湖职业"); setMainContent(`${renderNoticeHtml()}<div class="notice">当前职业：<b>${player.job}</b></div><div class="table-box"><table><thead><tr><th>职业</th><th>说明</th><th>产出</th><th>选择</th></tr></thead><tbody>${rows}</tbody></table></div><div class="shop-actions"><button class="action-btn" onclick="doJob()">执行职业动作</button></div>`); }
   function showPharmacy() { currentView = "pharmacy"; const recipeHtml = recipes.map((r, i) => { const canCraft = canCraftRecipe(r); const materialText = Object.keys(r.materials).map(name => { const own = player.inventory[name] || 0; return `${name}(${own}/${r.materials[name]})`; }).join("，"); return `<div class="card"><h3>${r.name}</h3><div class="list-line">${r.effect}</div><div class="list-line">材料：${materialText}</div><button class="small-btn" ${canCraft ? "" : "disabled"} onclick="craftMedicine(${i})">炼制</button></div>`; }).join(""); setMainTitle("神农药房"); setMainContent(`${renderNoticeHtml()}<div class="status-grid">${recipeHtml || "<div class='card'>暂无药方</div>"}</div>`); }
   function showTrain() { currentView = "train"; const rows = Object.keys(CULTIVATION_CONFIG).map(key => { const cfg = CULTIVATION_CONFIG[key]; const level = getCultivationLevel(key); const bonus = getCultivationBonus(key); const pct = Math.floor((getCultivationGrowthPercent(key) || 0) * 1000) / 10; const cost = level >= cfg.maxLevel ? "已满级" : `${getCultivationCost(key)} 两`; return `<tr><td>${cfg.name}</td><td>${level} / ${cfg.maxLevel}</td><td>${cfg.effectText}${bonus}${pct > 0 ? `（额外 ${pct}%）` : ""}</td><td>${cost}</td><td><button class="small-btn" ${level >= cfg.maxLevel ? "disabled" : ""} onclick="doCultivationUpgrade('${key}')">提升</button></td></tr>`; }).join(""); const summary = getCultivationSummary(); setMainTitle("修炼系统"); setMainContent(`${renderNoticeHtml()}<div class="status-grid"><div class="card"><h3>当前修炼总览</h3><div class="list-line">攻击修炼加成：+${summary.attack}</div><div class="list-line">防御修炼加成：+${summary.defense}</div><div class="list-line">气血修炼加成：+${summary.hp}</div><div class="list-line">内力修炼加成：+${summary.mp}</div><div class="list-line">抗性修炼加成：+${summary.resist}</div><div class="list-line">修炼额外战力：${Math.floor((summary.attack + summary.defense + summary.hp / 2 + summary.mp / 2) * 3)}</div></div></div><div class="table-box"><table><thead><tr><th>修炼项目</th><th>等级</th><th>当前效果</th><th>升级花费</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
+
+
+  function showTask() {
+    currentView = "task";
+    const activeIds = new Set(player.activeTasks || []);
+    const cards = taskTypeList.map((type) => {
+      const tasks = (taskTemplates || []).filter((x) => x.type === type.key && player.level >= (x.minLevel || 1));
+      const rows = tasks.map((task) => {
+        const progress = player.taskProgress?.[task.id] || 0;
+        const target = task.objective?.count || 1;
+        const completed = progress >= target;
+        const accepted = activeIds.has(task.id);
+        return `<div class="card"><div class="list-line"><b>${task.name}</b>（Lv${task.minLevel}+）</div><div class="list-line">${task.desc}</div><div class="list-line">进度：${Math.min(progress, target)} / ${target}</div><div class="list-line">奖励：银两${task.reward.money || 0}，经验${task.reward.exp || 0}</div><div class="shop-actions">${!accepted ? `<button class='small-btn' onclick="acceptTask('${task.id}')">接取</button>` : `<button class='small-btn' disabled>进行中</button>`}${accepted && completed ? `<button class='small-btn' onclick="claimTask('${task.id}')">提交</button>` : ""}</div></div>`;
+      }).join("");
+      return `<div class="card"><h3>${type.name}</h3><div class="list-line">${type.desc}</div>${rows || "<div class='list-line'>当前无可接任务。</div>"}</div>`;
+    }).join("");
+
+    setMainTitle("任务榜");
+    setMainContent(`${renderNoticeHtml()}<div class="status-grid">${cards}</div>`);
+  }
 
   function showChangelog() {
     currentView = "changelog";
@@ -298,6 +363,7 @@
       return;
     }
 
+    if (typeof onPlayerActionProgress === "function") onPlayerActionProgress("cultivate");
     updateAll();
     showTrain();
   }
@@ -321,8 +387,11 @@
     showJob,
     showPharmacy,
     showTrain,
+    showTask,
     showChangelog,
     showDebugPanel,
-    doCultivationUpgrade
+    doCultivationUpgrade,
+    showEquipDetail(slot) { g.currentEquipDetailSlot = slot; showEquip(); },
+    setShopCategory(category) { g.shopCategory = category; showShop(); }
   };
 })(window);

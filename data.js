@@ -14,6 +14,7 @@ const sectList = __DATA.sectList || [];
 const jobList = __DATA.jobList || [];
 const taskTypeEnum = __DATA.taskTypeEnum || {};
 const taskTypeList = __DATA.taskTypeList || [];
+const taskTemplates = __DATA.taskTemplates || [];
 const monsterList = __DATA.monsterList || [];
 const mapData = __DATA.mapData || {};
 const dropTable = __DATA.dropTable || {};

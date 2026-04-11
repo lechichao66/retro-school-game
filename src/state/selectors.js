@@ -89,10 +89,14 @@
 
     const attackPct = getCultivationPercent("attack");
     const defensePct = getCultivationPercent("defense");
+    const sectBonus = typeof g.getSectCombatBonus === "function" ? g.getSectCombatBonus() : { atkRate: 0, defRate: 0 };
+
+    const attackBase = Math.floor(equipAttack + cultivationAttack * (1 + attackPct));
+    const defenseBase = Math.floor(equipDefense + cultivationDefense * (1 + defensePct));
 
     return {
-      attack: Math.floor(equipAttack + cultivationAttack * (1 + attackPct)),
-      defense: Math.floor(equipDefense + cultivationDefense * (1 + defensePct))
+      attack: Math.floor(attackBase * (1 + (Number(sectBonus.atkRate) || 0))),
+      defense: Math.floor(defenseBase * (1 + (Number(sectBonus.defRate) || 0)))
     };
   }
 
@@ -102,10 +106,10 @@
     const maxHp = getMaxHpValue();
     const maxMp = getMaxMpValue();
 
-    const levelScore = (p.level || 1) * 500;
-    const baseScore = Math.floor(maxHp * 2 + maxMp * 5);
-    const equipScore = bonus.attack * 20 + bonus.defense * 15;
-    const expScore = Math.floor((p.exp || 0) * 0.5);
+    const levelScore = (p.level || 1) * 120;
+    const baseScore = Math.floor(maxHp * 0.9 + maxMp * 1.2);
+    const equipScore = bonus.attack * 8 + bonus.defense * 6;
+    const expScore = Math.floor((p.exp || 0) * 0.2);
 
     return levelScore + baseScore + equipScore + expScore;
   }

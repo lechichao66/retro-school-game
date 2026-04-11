@@ -204,3 +204,8 @@ body {
   flex-wrap: wrap;
   gap: 8px;
 }
+.scroll-box {
+  max-height: 420px;
+  overflow-y: auto;
+  margin-top: 10px;
+}

@@ -50,6 +50,10 @@
       playerRef.skills = getDefaultSkills();
     }
 
+    if (!Array.isArray(playerRef.activeTasks)) playerRef.activeTasks = [];
+    if (!playerRef.taskProgress || typeof playerRef.taskProgress !== "object") playerRef.taskProgress = {};
+    if (!Array.isArray(playerRef.completedTasks)) playerRef.completedTasks = [];
+
     if (!Array.isArray(playerRef.states)) playerRef.states = [];
     if (typeof playerRef.shield === "undefined") playerRef.shield = 0;
     if (!playerRef.currentMap) playerRef.currentMap = playerRef.location || "新手村";

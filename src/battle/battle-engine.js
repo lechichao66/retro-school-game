@@ -152,7 +152,13 @@
     player.money += moneyGain;
     gainExp(expGain);
 
-    addLog("success", `【胜利】你击败了 ${monsterName}！获得银两 ${moneyGain}，经验 ${expGain}`);
+    const drops = typeof rollDrops === "function" ? rollDrops(monsterName) : [];
+    drops.forEach((name) => addItem(name, 1));
+    if (typeof global.onMonsterDefeated === "function") {
+      global.onMonsterDefeated(monsterName, currentBattle.type || "normal");
+    }
+
+    addLog("success", `【胜利】你击败了 ${monsterName}！获得银两 ${moneyGain}，经验 ${expGain}${drops.length ? `，掉落 ${drops.join("、")}` : ""}`);
     setNotice("success", `胜利！银两 +${moneyGain}，经验 +${expGain}`);
 
     player.states = [];
