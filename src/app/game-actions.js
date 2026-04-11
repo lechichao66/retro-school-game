@@ -343,6 +343,59 @@
     showHall();
   }
 
+  function debugSetLevel(level) {
+    const targetLevel = Math.max(1, Math.floor(Number(level) || 1));
+    player.level = targetLevel;
+    player.exp = 0;
+    player.hp = getMaxHp();
+    player.mp = getMaxMp();
+    setNotice("success", `调试成功：已设置为 ${targetLevel} 级。`);
+    addLog("sys", `【调试】等级设为 ${targetLevel} 级。`);
+    updateAll();
+    if (currentView === "debug") showDebugPanel();
+  }
+
+  function debugAddMoney(amount) {
+    const gain = Math.max(0, Math.floor(Number(amount) || 0));
+    player.money += gain;
+    setNotice("success", `调试成功：银两 +${gain}`);
+    addLog("sys", `【调试】银两增加 ${gain}。`);
+    updateAll();
+    if (currentView === "debug") showDebugPanel();
+  }
+
+  function debugCultivateAll(addLevel) {
+    const delta = Math.max(1, Math.floor(Number(addLevel) || 1));
+    if (!player.cultivation) player.cultivation = {};
+    Object.keys(CULTIVATION_CONFIG).forEach((key) => {
+      const cap = CULTIVATION_CONFIG[key].maxLevel;
+      player.cultivation[key] = Math.min(cap, (player.cultivation[key] || 0) + delta);
+    });
+    setNotice("success", `调试成功：全修炼提升 ${delta} 级（封顶受限）。`);
+    addLog("sys", `【调试】全修炼 +${delta} 级。`);
+    updateAll();
+    if (currentView === "debug") showDebugPanel();
+  }
+
+  function debugFullRecover() {
+    player.hp = getMaxHp();
+    player.mp = getMaxMp();
+    player.states = [];
+    player.shield = 0;
+    setNotice("success", "调试成功：状态已恢复至满值。");
+    addLog("sys", "【调试】已满血满蓝并清除临时状态。");
+    updateAll();
+    if (currentView === "debug") showDebugPanel();
+  }
+
+  function debugGrantTestGear() {
+    ["精铁剑", "黑铁甲", "玄铁盔", "铁扣腰带", "追风靴", "赤炎坠", "镇岳法玺"].forEach((name) => addItem(name, 1));
+    setNotice("success", "调试成功：已发放一套测试装备。");
+    addLog("sys", "【调试】发放测试装备一套。");
+    updateAll();
+    if (currentView === "debug") showDebugPanel();
+  }
+
   g.__JH_GAME_ACTIONS__ = {
     fakeChat,
     bubblePoint,
@@ -357,6 +410,11 @@
     doJob,
     saveGameBtn,
     loadGameBtn,
-    resetGameBtn
+    resetGameBtn,
+    debugSetLevel,
+    debugAddMoney,
+    debugCultivateAll,
+    debugFullRecover,
+    debugGrantTestGear
   };
 })(window);

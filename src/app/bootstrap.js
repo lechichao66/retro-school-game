@@ -1,7 +1,7 @@
 (function initBootstrap(global) {
   const g = global || window;
   g.__JH_APP__ = g.__JH_APP__ || {
-    version: "phase1-step7",
+    version: "v1.2.1b",
     bootedAt: Date.now()
   };
 })(window);

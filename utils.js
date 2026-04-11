@@ -72,9 +72,17 @@ function clampPlayer() {
     player.equips = {
       weapon: "",
       armor: "",
-      shoes: ""
+      hat: "",
+      belt: "",
+      shoes: "",
+      necklace: "",
+      artifact: ""
     };
   }
+  const equipSlots = ["weapon", "armor", "hat", "belt", "shoes", "necklace", "artifact"];
+  equipSlots.forEach((slot) => {
+    if (typeof player.equips[slot] !== "string") player.equips[slot] = "";
+  });
 
   if (!player.job) player.job = "无职业";
   if (!player.sect) player.sect = "无门无派";
@@ -94,7 +102,15 @@ function getEquipBonus() {
   let attack = 0;
   let defense = 0;
 
-  [player.equips.weapon, player.equips.armor, player.equips.shoes].forEach((equipName) => {
+  [
+    player.equips.weapon,
+    player.equips.armor,
+    player.equips.hat,
+    player.equips.belt,
+    player.equips.shoes,
+    player.equips.necklace,
+    player.equips.artifact
+  ].forEach((equipName) => {
     if (!equipName || !equipData[equipName]) return;
 
     const equip = equipData[equipName];
@@ -107,15 +123,15 @@ function getEquipBonus() {
     defense += Math.round(baseDefense * qMultiplier);
   });
 
-  if (typeof getCultivationBonus === "function") {
-    attack += getCultivationBonus("attack");
-    defense += getCultivationBonus("defense");
-  }
+  const equipAttack = attack;
+  const equipDefense = defense;
+  const cultivationAttack = typeof getCultivationBonus === "function" ? getCultivationBonus("attack") : 0;
+  const cultivationDefense = typeof getCultivationBonus === "function" ? getCultivationBonus("defense") : 0;
+  const attackPct = typeof getCultivationGrowthPercent === "function" ? getCultivationGrowthPercent("attack") : 0;
+  const defensePct = typeof getCultivationGrowthPercent === "function" ? getCultivationGrowthPercent("defense") : 0;
 
-  if (typeof getCultivationGrowthPercent === "function") {
-    attack = Math.floor(attack * (1 + getCultivationGrowthPercent("attack")));
-    defense = Math.floor(defense * (1 + getCultivationGrowthPercent("defense")));
-  }
+  attack = Math.floor(equipAttack + cultivationAttack * (1 + attackPct));
+  defense = Math.floor(equipDefense + cultivationDefense * (1 + defensePct));
 
   return { attack, defense };
 }
@@ -213,7 +229,10 @@ function getItemDetailText(name) {
     const attack = e.attack || e.baseStats?.attack || 0;
     const defense = e.defense || e.baseStats?.defense || 0;
     const quality = getEquipQualityMeta(e.quality);
-    return `【<span style="color:${quality.color};">${quality.name}</span>装备】攻击+${attack}，防御+${defense}。${e.desc || ""}`;
+    const extras = e.extraStats && typeof e.extraStats === "object"
+      ? Object.keys(e.extraStats).map((key) => `${key}+${e.extraStats[key]}`).join("，")
+      : "";
+    return `【<span style="color:${quality.color};">${quality.name}</span>装备】攻击+${attack}，防御+${defense}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
   }
 
   if (name === "小还丹") return "【丹药】恢复气血20、内力10。";

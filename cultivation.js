@@ -5,8 +5,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 30,
     growthCost: 1.2,
-    effectPerLevel: 2,
-    percentPerLevel: 0.003,
+    effectPerLevel: 3,
+    percentPerLevel: 0.005,
     effectText: "攻击 +"
   },
   defense: {
@@ -15,8 +15,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 30,
     growthCost: 1.2,
-    effectPerLevel: 2,
-    percentPerLevel: 0.003,
+    effectPerLevel: 3,
+    percentPerLevel: 0.005,
     effectText: "防御 +"
   },
   hp: {
@@ -25,8 +25,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 40,
     growthCost: 1.22,
-    effectPerLevel: 10,
-    percentPerLevel: 0.004,
+    effectPerLevel: 14,
+    percentPerLevel: 0.006,
     effectText: "气血上限 +"
   },
   mp: {
@@ -35,8 +35,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 40,
     growthCost: 1.22,
-    effectPerLevel: 8,
-    percentPerLevel: 0.004,
+    effectPerLevel: 10,
+    percentPerLevel: 0.006,
     effectText: "内力上限 +"
   },
   resist: {

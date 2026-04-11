@@ -69,6 +69,11 @@ function doJob() { return window.__JH_GAME_ACTIONS__.doJob(); }
 function saveGameBtn() { return window.__JH_GAME_ACTIONS__.saveGameBtn(); }
 function loadGameBtn() { return window.__JH_GAME_ACTIONS__.loadGameBtn(); }
 function resetGameBtn() { return window.__JH_GAME_ACTIONS__.resetGameBtn(); }
+function debugSetLevel(level) { return window.__JH_GAME_ACTIONS__.debugSetLevel(level); }
+function debugAddMoney(amount) { return window.__JH_GAME_ACTIONS__.debugAddMoney(amount); }
+function debugCultivateAll(level) { return window.__JH_GAME_ACTIONS__.debugCultivateAll(level); }
+function debugFullRecover() { return window.__JH_GAME_ACTIONS__.debugFullRecover(); }
+function debugGrantTestGear() { return window.__JH_GAME_ACTIONS__.debugGrantTestGear(); }
 
 
 // ===== 7. 兼容 HTML 按钮名 =====
@@ -112,7 +117,14 @@ window.saveGameBtn = saveGameBtn;
 window.loadGameBtn = loadGameBtn;
 window.resetGameBtn = resetGameBtn;
 window.showTrain = showTrain;
+window.showChangelog = function showChangelog() { return window.__JH_UI_RENDER__.showChangelog(); };
+window.showDebugPanel = function showDebugPanel() { return window.__JH_UI_RENDER__.showDebugPanel(); };
 window.doCultivationUpgrade = doCultivationUpgrade;
+window.debugSetLevel = debugSetLevel;
+window.debugAddMoney = debugAddMoney;
+window.debugCultivateAll = debugCultivateAll;
+window.debugFullRecover = debugFullRecover;
+window.debugGrantTestGear = debugGrantTestGear;
 
 function autoLoadLatestSave() {
   if (!window.__JH_SAVE_SYSTEM__ || typeof window.__JH_SAVE_SYSTEM__.loadFromLocalStorage !== "function") {
@@ -142,6 +154,20 @@ window.onload = function () {
     normalizeLogs();
     updateAll();
     showHall();
+    const v = window.__JH_DATA__?.versionLog?.version;
+    if (v) {
+      const key = "jianghu_last_seen_version";
+      const seen = localStorage.getItem(key);
+      if (seen !== v) {
+        localStorage.setItem(key, v);
+        setNotice("info", `已更新到 ${v}。可在“更新日志”查看详情。`);
+        if (confirm(`检测到版本更新：${v}\n是否立即查看更新日志？`)) {
+          showChangelog();
+        } else {
+          showHall();
+        }
+      }
+    }
     console.log("少年江湖 - game.js 兼容入口加载成功");
   } catch (err) {
     console.error("江湖启动失败：", err);

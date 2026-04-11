@@ -11,6 +11,10 @@ window.__JH_DATA__.shopItems = [
   { name: "布衣", desc: "普通衣物，略微防身", price: 15, type: "equip" },
   { name: "皮甲", desc: "简单护身皮甲", price: 38, type: "equip" },
   { name: "轻甲", desc: "防护更强的基础护甲", price: 80, type: "equip" },
+  { name: "布帽", desc: "轻便帽子，略增抗性", price: 16, type: "equip" },
+  { name: "玄铁盔", desc: "带来更好的头部防护", price: 56, type: "equip" },
+  { name: "麻布腰带", desc: "基础护腰，便于蓄力", price: 14, type: "equip" },
+  { name: "铁扣腰带", desc: "稳固腰腹，内力更顺", price: 52, type: "equip" },
   { name: "草鞋", desc: "行走江湖的基础鞋履", price: 8, type: "equip" },
   { name: "快靴", desc: "更轻便一些的靴子", price: 28, type: "equip" },
   { name: "黑靴", desc: "较为扎实的江湖靴子", price: 60, type: "equip" }
