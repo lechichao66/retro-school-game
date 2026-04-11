@@ -26,6 +26,10 @@ function randomPick(arr) {
 
 // ===== 2. 玩家数值工具 =====
 function getMaxHp() {
+  if (window.__JH_SELECTORS__ && typeof window.__JH_SELECTORS__.getMaxHpValue === "function") {
+    return window.__JH_SELECTORS__.getMaxHpValue();
+  }
+
   const baseHp = 100;
   const levelBonus = (player.level - 1) * 20;
   const cultivationBonus = typeof getCultivationBonus === "function" ? getCultivationBonus("hp") : 0;
@@ -33,6 +37,10 @@ function getMaxHp() {
 }
 
 function getMaxMp() {
+  if (window.__JH_SELECTORS__ && typeof window.__JH_SELECTORS__.getMaxMpValue === "function") {
+    return window.__JH_SELECTORS__.getMaxMpValue();
+  }
+
   const baseMp = 80;
   const levelBonus = (player.level - 1) * 10;
   const cultivationBonus = typeof getCultivationBonus === "function" ? getCultivationBonus("mp") : 0;
@@ -75,6 +83,10 @@ function clampPlayer() {
 
 // ===== 3. 装备与战力计算 =====
 function getEquipBonus() {
+  if (window.__JH_SELECTORS__ && typeof window.__JH_SELECTORS__.getEquipBonusValue === "function") {
+    return window.__JH_SELECTORS__.getEquipBonusValue();
+  }
+
   let attack = 0;
   let defense = 0;
 
@@ -101,6 +113,10 @@ function getEquipBonus() {
   return { attack, defense };
 }
 function getPowerValue() {
+  if (window.__JH_SELECTORS__ && typeof window.__JH_SELECTORS__.getPowerValueSafe === "function") {
+    return window.__JH_SELECTORS__.getPowerValueSafe();
+  }
+
   const bonus = getEquipBonus();
   const maxHp = getMaxHp();
   const maxMp = getMaxMp();
@@ -208,6 +224,14 @@ function addLog(type, text) {
 }
 
 function setNotice(type, text) {
+  if (window.__JH_RUNTIME_STATE__ && typeof window.__JH_RUNTIME_STATE__.setNotice === "function") {
+    uiNotice = window.__JH_RUNTIME_STATE__.setNotice({
+      type: type || "info",
+      text: text || ""
+    });
+    return;
+  }
+
   uiNotice = {
     type: type || "info",
     text: text || ""
@@ -215,6 +239,14 @@ function setNotice(type, text) {
 }
 
 function clearNotice() {
+  if (window.__JH_RUNTIME_STATE__ && typeof window.__JH_RUNTIME_STATE__.setNotice === "function") {
+    uiNotice = window.__JH_RUNTIME_STATE__.setNotice({
+      type: "info",
+      text: ""
+    });
+    return;
+  }
+
   uiNotice = {
     type: "info",
     text: ""
