@@ -1,5 +1,6 @@
 window.__JH_DATA__ = window.__JH_DATA__ || {};
 window.__JH_DATA__.jobList = [
+  { name: "采药", intro: "山野采药，为炼药链提供基础素材。", gain: "止血草" },
   { name: "采冰", intro: "前往寒地采集冰水，是配药材料之一。", gain: "冰水" },
   { name: "采矿", intro: "在矿洞挖取矿石，可用于打造与交易。", gain: "矿石" },
   { name: "伐木", intro: "砍伐木材，获得木头，适合前期积累。", gain: "木头" },

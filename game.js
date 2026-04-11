@@ -40,6 +40,9 @@ function showJob() { return window.__JH_UI_RENDER__.showJob(); }
 function showTask() { return window.__JH_UI_RENDER__.showTask(); }
 function showMartial() { return window.__JH_UI_RENDER__.showMartial(); }
 function showBattleLog() { return window.__JH_UI_RENDER__.showBattleLog(); }
+function showTreasure() { return window.__JH_UI_RENDER__.showTreasure(); }
+function showDungeon() { return window.__JH_UI_RENDER__.showDungeon(); }
+function showCodex() { return window.__JH_UI_RENDER__.showCodex(); }
 function showPharmacy() { return window.__JH_UI_RENDER__.showPharmacy(); }
 function showTrain() { return window.__JH_UI_RENDER__.showTrain(); }
 function doCultivationUpgrade(type) { return window.__JH_UI_RENDER__.doCultivationUpgrade(type); }
@@ -74,6 +77,10 @@ function claimTask(taskId) { return window.__JH_GAME_ACTIONS__.claimTask(taskId)
 function learnMartialSkill(skillId) { return window.__JH_GAME_ACTIONS__.learnMartialSkill(skillId); }
 function trainMartialSkill(skillId, mode) { return window.__JH_GAME_ACTIONS__.trainMartialSkill(skillId, mode); }
 function redeemSectReward(type) { return window.__JH_GAME_ACTIONS__.redeemSectReward(type); }
+function grantTreasureMap() { return window.__JH_GAME_ACTIONS__.grantTreasureMap(); }
+function useTreasureMap(idx) { return window.__JH_GAME_ACTIONS__.useTreasureMap(idx); }
+function digTreasure(idx) { return window.__JH_GAME_ACTIONS__.digTreasure(idx); }
+function runDungeon(id) { return window.__JH_GAME_ACTIONS__.runDungeon(id); }
 function saveGameBtn() { return window.__JH_GAME_ACTIONS__.saveGameBtn(); }
 function loadGameBtn() { return window.__JH_GAME_ACTIONS__.loadGameBtn(); }
 function resetGameBtn() { return window.__JH_GAME_ACTIONS__.resetGameBtn(); }
@@ -97,6 +104,9 @@ window.showJob = showJob;
 window.showTask = showTask;
 window.showMartial = showMartial;
 window.showBattleLog = showBattleLog;
+window.showTreasure = showTreasure;
+window.showDungeon = showDungeon;
+window.showCodex = showCodex;
 window.showPharmacy = showPharmacy;
 
 window.train = train;
@@ -125,6 +135,10 @@ window.claimTask = claimTask;
 window.learnMartialSkill = learnMartialSkill;
 window.trainMartialSkill = trainMartialSkill;
 window.redeemSectReward = redeemSectReward;
+window.grantTreasureMap = grantTreasureMap;
+window.useTreasureMap = useTreasureMap;
+window.digTreasure = digTreasure;
+window.runDungeon = runDungeon;
 window.showEquipDetail = function showEquipDetail(slot) { return window.__JH_UI_RENDER__.showEquipDetail(slot); };
 window.setShopCategory = function setShopCategory(category) { return window.__JH_UI_RENDER__.setShopCategory(category); };
 window.setTaskTab = function setTaskTab(tab) { return window.__JH_UI_RENDER__.setTaskTab(tab); };

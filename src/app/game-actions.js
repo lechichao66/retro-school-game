@@ -7,6 +7,14 @@
     if (!Array.isArray(player.completedTasks)) player.completedTasks = [];
   }
 
+  function ensureGrowthState() {
+    if (!Array.isArray(player.treasureMaps)) player.treasureMaps = [];
+    if (!player.assistantProfessions || typeof player.assistantProfessions !== "object") {
+      player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
+    }
+    if (!player.unlockedSecretTechs || typeof player.unlockedSecretTechs !== "object") player.unlockedSecretTechs = {};
+  }
+
   function getTaskById(taskId) {
     return (taskTemplates || []).find((x) => x.id === taskId) || null;
   }
@@ -326,7 +334,14 @@
       return;
     }
 
-    if (player.job === "采冰") {
+    if (player.job === "采药") {
+      addItem("止血草", 1);
+      onPlayerActionProgress("collect", { name: "止血草", count: 1 });
+      player.money += 2;
+      gainExp(10);
+      addLog("event", "你采到一株止血草。获得【止血草 x1】，银两 +2，经验 +10。");
+      setNotice("success", "采药成功：获得止血草 x1。");
+    } else if (player.job === "采冰") {
       addItem("冰水", 1);
       onPlayerActionProgress("collect", { name: "冰水", count: 1 });
       player.money += 2;
@@ -398,6 +413,15 @@
     showJob();
   }
 
+  function getMartialResearchCost(skill, mode) {
+    const base = mode === "resource" ? 80 : 0;
+    const reqContribution = Number(skill?.learnReq?.contribution || 0);
+    const discountLevel = Math.floor((player.sectContribution || 0) / 100);
+    const capLevel = Math.floor(reqContribution / 20);
+    const finalDiscountLevel = Math.max(0, Math.min(discountLevel, capLevel));
+    return Math.max(20, base - finalDiscountLevel * 8);
+  }
+
   function learnMartialSkill(skillId) {
     if (player.level < 10) {
       setNotice("error", "10级后才能正式学习门派武功。");
@@ -428,14 +452,15 @@
       return;
     }
     if (mode === "resource") {
-      if (player.money < 80 || !consumeVigor(12)) {
-        setNotice("error", "银两80与活力12不足，无法研习。");
+      const researchCost = getMartialResearchCost(skill, "resource");
+      if (player.money < researchCost || !consumeVigor(12)) {
+        setNotice("error", `银两${researchCost}与活力12不足，无法研习。`);
         showSect();
         return;
       }
-      player.money -= 80;
+      player.money -= researchCost;
       player.martial.mastery[skillId] = (player.martial.mastery[skillId] || 0) + 12;
-      addLog("event", `你消耗银两与活力研习【${skill.name}】，熟练度 +12。`);
+      addLog("event", `你消耗银两${researchCost}与活力研习【${skill.name}】，熟练度 +12。`);
     } else {
       player.martial.mastery[skillId] = (player.martial.mastery[skillId] || 0) + 4;
       addLog("event", `你在实战中体悟【${skill.name}】，熟练度 +4。`);
@@ -456,10 +481,82 @@
     if (type === "title") player.title = `${player.sect}入室弟子`;
     if (type === "pill") addItem("大还丹", 1);
     if (type === "material") addItem("玄铁", 1);
-    if (type === "passive") player.sectReputation = (player.sectReputation || 0) + 20;
+    if (type === "passive") {
+      player.sectReputation = (player.sectReputation || 0) + 20;
+      player.unlockedSecretTechs[player.sect] = true;
+    }
     addLog("success", `你完成了师门兑换：${type}。`);
     setNotice("success", "师门兑换成功。");
     showSect();
+  }
+
+  function grantTreasureMap() {
+    ensureGrowthState();
+    const template = (g.__JH_DATA__?.treasureMapTemplates || [])[0];
+    if (!template) return;
+    player.treasureMaps.push({ ...template, used: false });
+    addLog("sys", `你获得了宝图【${template.name}】。`);
+    setNotice("success", "获得样板宝图 x1。");
+    if (typeof showTreasure === "function") showTreasure();
+  }
+
+  function useTreasureMap(index) {
+    ensureGrowthState();
+    const map = player.treasureMaps[index];
+    if (!map || map.used) return;
+    if (!consumeStamina(map.staminaCost || 10)) {
+      setNotice("error", "体力不足，无法使用宝图。");
+      showTreasure();
+      return;
+    }
+    map.used = true;
+    addLog("event", `你研读了【${map.name}】，锁定了挖宝坐标。体力 -${map.staminaCost || 10}。`);
+    setNotice("success", "宝图已启用，可执行挖宝。");
+    showTreasure();
+  }
+
+  function digTreasure(index) {
+    ensureGrowthState();
+    const map = player.treasureMaps[index];
+    if (!map?.used) return;
+    const monsterRoll = Math.random() < (map.encounterRate || 0.3);
+    if (monsterRoll) {
+      addLog("event", "挖宝时惊动了守宝小怪，你仓促应战后勉强脱身。");
+      loseHp(8);
+    }
+    (map.rewards || []).forEach((r) => {
+      if (r.type === "money") player.money += Number(r.value || 0);
+      if (r.type === "item" && r.name) addItem(r.name, Number(r.value || 1));
+    });
+    player.treasureMaps.splice(index, 1);
+    setNotice("success", "挖宝成功，已结算掉落。");
+    addLog("success", "宝图探索完成：已获得样板奖励。");
+    updateAll();
+    showTreasure();
+  }
+
+  function runDungeon(dungeonId) {
+    const cfg = (g.__JH_DATA__?.dungeonTemplates || []).find((x) => x.id === dungeonId);
+    if (!cfg) return;
+    if (player.level < (cfg.minLevel || 1)) return setNotice("error", "等级不足，无法进入副本。"), showDungeon();
+    if (!consumeStamina(cfg.staminaCost || 15)) return setNotice("error", "体力不足，无法进入副本。"), showDungeon();
+    const powerGap = getPowerValue() - (cfg.recommendedPower || 0);
+    if (powerGap < -200) {
+      loseHp(20);
+      addLog("error", `你挑战副本【${cfg.name}】失败，体力消耗且气血受损。`);
+      setNotice("error", "副本挑战失败：当前战力偏低。");
+      updateAll();
+      showDungeon();
+      return;
+    }
+    const reward = cfg.reward || {};
+    player.money += reward.money || 0;
+    gainExp(reward.exp || 0);
+    (reward.items || []).forEach((it) => addItem(it.name, it.count || 1));
+    addLog("success", `你通关副本【${cfg.name}】，获得银两${reward.money || 0}、经验${reward.exp || 0}。`);
+    setNotice("success", `副本通关：${cfg.name}`);
+    updateAll();
+    showDungeon();
   }
 
   function saveGameBtn() {
@@ -618,6 +715,13 @@
     debugGrantTestGear,
     learnMartialSkill,
     trainMartialSkill,
-    redeemSectReward
+    redeemSectReward,
+    getMartialResearchCost,
+    grantTreasureMap,
+    useTreasureMap,
+    digTreasure,
+    runDungeon
   };
+  g.getMartialResearchCost = getMartialResearchCost;
+  ensureGrowthState();
 })(window);
