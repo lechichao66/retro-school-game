@@ -9,6 +9,8 @@ function defaultPlayer() {
     title: "江湖小虾",
     job: "无职业",
     location: "新手村",
+    sectContribution: 0,
+    sectReputation: 0,
 
     hp: 100,
     mp: 80,
