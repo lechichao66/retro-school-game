@@ -3,6 +3,7 @@
 
   function ensureRuntimeState() {
     if (!Array.isArray(g.logs)) g.logs = [];
+    if (!Array.isArray(g.battleLogs)) g.battleLogs = [];
     if (!g.uiNotice || typeof g.uiNotice !== "object") {
       g.uiNotice = { type: "info", text: "" };
     }
@@ -13,6 +14,18 @@
   function setLogs(nextLogs) {
     g.logs = Array.isArray(nextLogs) ? nextLogs : [];
     return g.logs;
+  }
+
+  function pushBattleLog(entry) {
+    if (!entry || typeof entry !== "object") return g.battleLogs;
+    if (!Array.isArray(g.battleLogs)) g.battleLogs = [];
+    g.battleLogs.unshift({
+      type: entry.type || "event",
+      text: entry.text || "",
+      time: entry.time || (typeof g.getNowTime === "function" ? g.getNowTime() : "")
+    });
+    if (g.battleLogs.length > 150) g.battleLogs.pop();
+    return g.battleLogs;
   }
 
   function setNotice(nextNotice) {
@@ -36,7 +49,9 @@
     setLogs,
     setNotice,
     setCurrentView,
+    pushBattleLog,
     getLogs: () => g.logs,
+    getBattleLogs: () => g.battleLogs || [],
     getNotice: () => g.uiNotice,
     getCurrentView: () => g.currentView,
     getCurrentBattle: () => g.currentBattle

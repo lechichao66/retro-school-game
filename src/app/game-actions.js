@@ -264,6 +264,9 @@
 
     player.sect = sect.name;
     applySectSkills(sect.name);
+    if (!player.martial || typeof player.martial !== "object") player.martial = { title: "", mastery: {}, realm: {} };
+    if (!player.martial.mastery) player.martial.mastery = {};
+    if (!player.martial.realm) player.martial.realm = {};
     addLog("sys", `你已加入 ${sect.name}。`);
     setNotice("success", `加入门派成功：${sect.name}`);
     updateAll();
@@ -400,6 +403,8 @@
 
     player = data.player || defaultPlayer();
     logs = data.logs || logs;
+    if (g.__JH_RUNTIME_STATE__?.setLogs) g.__JH_RUNTIME_STATE__.setLogs(logs);
+    if (g.battleLogs) g.battleLogs = [];
 
     if (typeof g.currentBattle !== "undefined") {
       g.currentBattle = null;
@@ -425,6 +430,7 @@
     logs = [
       { type: "sys", text: "【系统】你已重置江湖人生。", time: getNowTime() }
     ];
+    if (g.battleLogs) g.battleLogs = [];
 
     if (typeof g.currentBattle !== "undefined") {
       g.currentBattle = null;
@@ -484,9 +490,9 @@
   }
 
   function debugGrantTestGear() {
-    ["精铁剑", "黑铁甲", "玄铁盔", "铁扣腰带", "追风靴", "赤炎坠", "镇岳法玺"].forEach((name) => addItem(name, 1));
-    setNotice("success", "调试成功：已发放一套测试装备。");
-    addLog("sys", "【调试】发放测试装备一套。");
+    ["寒铁剑", "黑铁甲", "玄武盔", "龙纹腰带", "追风靴", "赤炎坠", "镇岳法玺"].forEach((name) => addItem(name, 1));
+    setNotice("success", "调试成功：已发放当前版本标准最高测试套装。");
+    addLog("sys", "【调试】发放当前版本标准最高测试套装。");
     updateAll();
     if (currentView === "debug") showDebugPanel();
   }

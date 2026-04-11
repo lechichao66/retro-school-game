@@ -40,7 +40,8 @@
   function calculatePlayerDefense() {
     const effects = global.__JH_BATTLE_EFFECTS__;
     const bonus = getEquipBonus();
-    const baseDef = 5 + bonus.defense;
+    const derived = global.__JH_SELECTORS__?.getDerivedCombatStatsValue?.() || { damageReduce: 0 };
+    const baseDef = 5 + bonus.defense + Math.floor((derived.damageReduce || 0) / 2);
     const breakValue = effects.getArmorBreakValue(player.states);
     const effectiveDef = Math.max(0, baseDef - breakValue);
 
@@ -59,10 +60,18 @@
     const monsterDef = calculateMonsterDefense();
     atk = Math.max(1, atk - monsterDef);
 
+    const derived = global.__JH_SELECTORS__?.getDerivedCombatStatsValue?.() || {};
+    const critRate = (derived.critRate || 0) / 100;
+    const critDamageRate = (derived.critDamage || 150) / 100;
+    const weakBonus = (derived.weakHit || 0) / 100;
     const critRoll = Math.random();
-    if (critRoll < 0.15) {
-      atk = Math.floor(atk * 1.8);
+    if (critRoll < critRate) {
+      atk = Math.floor(atk * critDamageRate);
       addLog("event", "【暴击】你突然爆发，伤害提升！");
+    }
+    atk += Math.floor(derived.trueDamage || 0);
+    if (Math.random() < 0.25) {
+      atk = Math.floor(atk * (1 + weakBonus));
     }
 
     return atk;
@@ -90,7 +99,10 @@
     }
 
     const playerDef = calculatePlayerDefense();
-    const finalDamage = Math.max(1, atk - playerDef);
+    const derived = global.__JH_SELECTORS__?.getDerivedCombatStatsValue?.() || {};
+    const damageReduce = Math.floor((derived.damageReduce || 0) / 3);
+    const resistReduce = Math.floor((derived.resist || 0) / 5);
+    const finalDamage = Math.max(1, atk - playerDef - damageReduce - resistReduce);
 
     return finalDamage;
   }
@@ -132,6 +144,7 @@
     battleRunning = true;
 
     addLog("sys", `【战斗开始】你与 ${currentBattle.name} 交手了！`);
+    addBattleLog("sys", `遭遇 ${currentBattle.name}（${currentBattle.type || "normal"}）`);
     renderBattleInHall();
 
     battleTimer = setInterval(() => {
@@ -154,6 +167,13 @@
 
     const drops = typeof rollDrops === "function" ? rollDrops(monsterName) : [];
     drops.forEach((name) => addItem(name, 1));
+    addBattleLog("success", `击败 ${monsterName}，获得银两 ${moneyGain}、经验 ${expGain}${drops.length ? `、掉落 ${drops.join("、")}` : ""}`);
+    if (!player.martial) player.martial = { title: "", mastery: {}, realm: {} };
+    if (!player.martial.mastery) player.martial.mastery = {};
+    const sectMartial = (global.martialArtsBySect?.[player.sect]?.skills || [])[0];
+    if (sectMartial?.id) {
+      player.martial.mastery[sectMartial.id] = (player.martial.mastery[sectMartial.id] || 0) + (sectMartial.baseMasteryGain || 1);
+    }
     if (typeof global.onMonsterDefeated === "function") {
       global.onMonsterDefeated(monsterName, currentBattle.type || "normal");
     }
@@ -171,6 +191,7 @@
     stopBattleTimer();
 
     addLog("error", "你被怪物击败了！");
+    addBattleLog("error", "战斗失败，已脱离战斗。");
     setNotice("error", "你输了，先去休息恢复吧。");
 
     player.states = [];
@@ -232,6 +253,7 @@
         "event",
         `【第 ${currentBattle.round} 回合】你出手造成 ${actualPlayerDamage} 伤害。（敌血：${currentBattle.hp}）`
       );
+      addBattleLog("event", `第${currentBattle.round}回合：你对${currentBattle.name}造成 ${actualPlayerDamage} 伤害`);
 
       if (Math.random() < 0.18) {
         effects.addBattleState(currentBattle, {
@@ -278,6 +300,7 @@
         "event",
         `【第 ${currentBattle.round} 回合】${currentBattle.name} 反击造成 ${actualMonsterDamage} 伤害。（你剩余气血：${player.hp}）`
       );
+      addBattleLog("event", `第${currentBattle.round}回合：${currentBattle.name}对你造成 ${actualMonsterDamage} 伤害`);
 
       if (player.hp <= 0) {
         finishBattleDefeat();

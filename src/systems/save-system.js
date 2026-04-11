@@ -2,7 +2,7 @@
   const g = global || window;
 
   const SAVE_KEY = "jianghu_save_v03";
-  const SAVE_VERSION = 5;
+  const SAVE_VERSION = 6;
 
   function getDefaultSkills() {
     return ["ironSkin", "quickSlash"];
@@ -49,6 +49,10 @@
     if (!Array.isArray(playerRef.skills) || playerRef.skills.length === 0) {
       playerRef.skills = getDefaultSkills();
     }
+    if (!playerRef.martial || typeof playerRef.martial !== "object") playerRef.martial = {};
+    if (typeof playerRef.martial.title !== "string") playerRef.martial.title = "";
+    if (!playerRef.martial.mastery || typeof playerRef.martial.mastery !== "object") playerRef.martial.mastery = {};
+    if (!playerRef.martial.realm || typeof playerRef.martial.realm !== "object") playerRef.martial.realm = {};
 
     if (!Array.isArray(playerRef.activeTasks)) playerRef.activeTasks = [];
     if (!playerRef.taskProgress || typeof playerRef.taskProgress !== "object") playerRef.taskProgress = {};

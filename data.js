@@ -11,6 +11,7 @@ const equipQualityConfig = __DATA.equipQualityConfig || {};
 const shopItems = __DATA.shopItems || [];
 const marketItems = __DATA.marketItems || [];
 const sectList = __DATA.sectList || [];
+const martialArtsBySect = __DATA.martialArtsBySect || {};
 const jobList = __DATA.jobList || [];
 const taskTypeEnum = __DATA.taskTypeEnum || {};
 const taskTypeList = __DATA.taskTypeList || [];
