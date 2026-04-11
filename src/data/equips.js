@@ -1,10 +1,15 @@
 window.__JH_DATA__ = window.__JH_DATA__ || {};
 
+function getEquipQualityColor(quality, fallback) {
+  const cfg = window.__JH_DATA__?.equipQualityConfig || {};
+  return cfg[quality]?.color || fallback || "#9ca3af";
+}
+
 function createEquipSchema(config) {
   const baseStats = config.baseStats || {};
   return {
     quality: config.quality || "common",
-    color: config.color || "#9ca3af",
+    color: getEquipQualityColor(config.quality || "common", config.color),
     slot: config.slot || "weapon",
     baseStats: {
       attack: baseStats.attack || 0,
