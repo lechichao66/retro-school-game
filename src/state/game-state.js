@@ -9,6 +9,10 @@
 
     if (!Array.isArray(g.logs)) g.logs = [];
     if (!g.uiNotice || typeof g.uiNotice !== "object") g.uiNotice = { type: "info", text: "" };
+    if (!Array.isArray(g.logs)) g.logs = [];
+    if (!g.uiNotice || typeof g.uiNotice !== "object") {
+      g.uiNotice = { type: "info", text: "" };
+    }
     if (typeof g.currentView !== "string") g.currentView = "hall";
     if (typeof g.currentBattle === "undefined") g.currentBattle = null;
   }
