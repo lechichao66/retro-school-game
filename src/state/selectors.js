@@ -20,23 +20,24 @@
   function getEquipBonusValue() {
     const p = g.player || { equips: {} };
     const equips = p.equips || {};
+    const data = g.__JH_DATA__?.equipData || g.equipData || {};
 
     let attack = 0;
     let defense = 0;
 
-    if (equips.weapon && g.equipData?.[equips.weapon]) {
-      attack += g.equipData[equips.weapon].attack || 0;
-      defense += g.equipData[equips.weapon].defense || 0;
+    if (equips.weapon && data[equips.weapon]) {
+      attack += data[equips.weapon].attack || 0;
+      defense += data[equips.weapon].defense || 0;
     }
 
-    if (equips.armor && g.equipData?.[equips.armor]) {
-      attack += g.equipData[equips.armor].attack || 0;
-      defense += g.equipData[equips.armor].defense || 0;
+    if (equips.armor && data[equips.armor]) {
+      attack += data[equips.armor].attack || 0;
+      defense += data[equips.armor].defense || 0;
     }
 
-    if (equips.shoes && g.equipData?.[equips.shoes]) {
-      attack += g.equipData[equips.shoes].attack || 0;
-      defense += g.equipData[equips.shoes].defense || 0;
+    if (equips.shoes && data[equips.shoes]) {
+      attack += data[equips.shoes].attack || 0;
+      defense += data[equips.shoes].defense || 0;
     }
 
     if (typeof g.getCultivationBonus === "function") {
