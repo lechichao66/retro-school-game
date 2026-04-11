@@ -33,7 +33,8 @@ function getMaxHp() {
   const baseHp = 100;
   const levelBonus = (player.level - 1) * 20;
   const cultivationBonus = typeof getCultivationBonus === "function" ? getCultivationBonus("hp") : 0;
-  return baseHp + levelBonus + cultivationBonus;
+  const percentBonus = typeof getCultivationGrowthPercent === "function" ? getCultivationGrowthPercent("hp") : 0;
+  return Math.floor((baseHp + levelBonus + cultivationBonus) * (1 + percentBonus));
 }
 
 function getMaxMp() {
@@ -44,7 +45,8 @@ function getMaxMp() {
   const baseMp = 80;
   const levelBonus = (player.level - 1) * 10;
   const cultivationBonus = typeof getCultivationBonus === "function" ? getCultivationBonus("mp") : 0;
-  return baseMp + levelBonus + cultivationBonus;
+  const percentBonus = typeof getCultivationGrowthPercent === "function" ? getCultivationGrowthPercent("mp") : 0;
+  return Math.floor((baseMp + levelBonus + cultivationBonus) * (1 + percentBonus));
 }
 
 function clampPlayer() {
@@ -92,27 +94,27 @@ function getEquipBonus() {
   let attack = 0;
   let defense = 0;
 
-  if (player.equips.weapon && equipData[player.equips.weapon]) {
-    const weapon = equipData[player.equips.weapon];
-    attack += weapon.attack || weapon.baseStats?.attack || 0;
-    defense += weapon.defense || weapon.baseStats?.defense || 0;
-  }
+  [player.equips.weapon, player.equips.armor, player.equips.shoes].forEach((equipName) => {
+    if (!equipName || !equipData[equipName]) return;
 
-  if (player.equips.armor && equipData[player.equips.armor]) {
-    const armor = equipData[player.equips.armor];
-    attack += armor.attack || armor.baseStats?.attack || 0;
-    defense += armor.defense || armor.baseStats?.defense || 0;
-  }
+    const equip = equipData[equipName];
+    const baseAttack = equip.attack || equip.baseStats?.attack || 0;
+    const baseDefense = equip.defense || equip.baseStats?.defense || 0;
+    const quality = getEquipQualityMeta(equip.quality);
+    const qMultiplier = Number(quality.statMultiplier) || 1;
 
-  if (player.equips.shoes && equipData[player.equips.shoes]) {
-    const shoes = equipData[player.equips.shoes];
-    attack += shoes.attack || shoes.baseStats?.attack || 0;
-    defense += shoes.defense || shoes.baseStats?.defense || 0;
-  }
+    attack += Math.round(baseAttack * qMultiplier);
+    defense += Math.round(baseDefense * qMultiplier);
+  });
 
   if (typeof getCultivationBonus === "function") {
     attack += getCultivationBonus("attack");
     defense += getCultivationBonus("defense");
+  }
+
+  if (typeof getCultivationGrowthPercent === "function") {
+    attack = Math.floor(attack * (1 + getCultivationGrowthPercent("attack")));
+    defense = Math.floor(defense * (1 + getCultivationGrowthPercent("defense")));
   }
 
   return { attack, defense };
@@ -135,8 +137,29 @@ function getPowerValue() {
 }
 
 function getEquipText(name, emptyText = "未装备") {
-  return name ? name : emptyText;
+  if (!name) return emptyText;
+
+  const e = (typeof equipData !== "undefined" && equipData[name]) ? equipData[name] : null;
+  if (!e) return name;
+
+  const quality = getEquipQualityMeta(e.quality);
+  return `<span style="color:${quality.color};">[${quality.name}]</span> ${name}`;
 }
+
+
+function getEquipQualityMeta(qualityKey) {
+  if (window.__JH_SELECTORS__ && typeof window.__JH_SELECTORS__.getEquipQualityMeta === "function") {
+    return window.__JH_SELECTORS__.getEquipQualityMeta(qualityKey);
+  }
+
+  const cfg = window.__JH_DATA__?.equipQualityConfig || {};
+  return cfg[qualityKey] || cfg.common || { key: "common", name: "凡品", color: "#9ca3af", statMultiplier: 1 };
+}
+
+function getEquipQualityText(qualityKey) {
+  return getEquipQualityMeta(qualityKey).name || "凡品";
+}
+
 
 
 // ===== 4. 背包与物品工具 =====
@@ -189,7 +212,8 @@ function getItemDetailText(name) {
     const e = equipData[name];
     const attack = e.attack || e.baseStats?.attack || 0;
     const defense = e.defense || e.baseStats?.defense || 0;
-    return `【${e.quality || "common"}装备】攻击+${attack}，防御+${defense}。${e.desc || ""}`;
+    const quality = getEquipQualityMeta(e.quality);
+    return `【<span style="color:${quality.color};">${quality.name}</span>装备】攻击+${attack}，防御+${defense}。${e.desc || ""}`;
   }
 
   if (name === "小还丹") return "【丹药】恢复气血20、内力10。";

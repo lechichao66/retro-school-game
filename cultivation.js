@@ -6,6 +6,7 @@ const CULTIVATION_CONFIG = {
     baseCost: 30,
     growthCost: 1.2,
     effectPerLevel: 2,
+    percentPerLevel: 0.003,
     effectText: "攻击 +"
   },
   defense: {
@@ -15,6 +16,7 @@ const CULTIVATION_CONFIG = {
     baseCost: 30,
     growthCost: 1.2,
     effectPerLevel: 2,
+    percentPerLevel: 0.003,
     effectText: "防御 +"
   },
   hp: {
@@ -24,6 +26,7 @@ const CULTIVATION_CONFIG = {
     baseCost: 40,
     growthCost: 1.22,
     effectPerLevel: 10,
+    percentPerLevel: 0.004,
     effectText: "气血上限 +"
   },
   mp: {
@@ -33,6 +36,7 @@ const CULTIVATION_CONFIG = {
     baseCost: 40,
     growthCost: 1.22,
     effectPerLevel: 8,
+    percentPerLevel: 0.004,
     effectText: "内力上限 +"
   },
   resist: {
@@ -42,6 +46,7 @@ const CULTIVATION_CONFIG = {
     baseCost: 50,
     growthCost: 1.25,
     effectPerLevel: 1,
+    percentPerLevel: 0,
     effectText: "抗性 +"
   }
 };
@@ -68,6 +73,15 @@ function getCultivationBonus(type) {
 
   const level = getCultivationLevel(type);
   return level * cfg.effectPerLevel;
+}
+
+
+function getCultivationGrowthPercent(type) {
+  const cfg = CULTIVATION_CONFIG[type];
+  if (!cfg) return 0;
+
+  const level = getCultivationLevel(type);
+  return level * (cfg.percentPerLevel || 0);
 }
 
 function getCultivationSummary() {

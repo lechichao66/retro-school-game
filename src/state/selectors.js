@@ -1,54 +1,94 @@
 (function initSelectors(global) {
   const g = global || window;
 
+  function getEquipDataMap() {
+    return g.__JH_DATA__?.equipData || g.equipData || {};
+  }
+
+  function getQualityConfigMap() {
+    return g.__JH_DATA__?.equipQualityConfig || {};
+  }
+
+  function getEquipQualityMeta(qualityKey) {
+    const cfg = getQualityConfigMap();
+    return cfg[qualityKey] || cfg.common || { key: "common", name: "凡品", color: "#9ca3af", statMultiplier: 1 };
+  }
+
+  function getEquipQualityMultiplier(qualityKey) {
+    const meta = getEquipQualityMeta(qualityKey);
+    const n = Number(meta.statMultiplier);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  function getCultivationPercent(type) {
+    if (typeof g.getCultivationGrowthPercent === "function") {
+      return Math.max(0, Number(g.getCultivationGrowthPercent(type)) || 0);
+    }
+    return 0;
+  }
+
+  function getScaledEquipStats(equip) {
+    if (!equip || typeof equip !== "object") return { attack: 0, defense: 0 };
+
+    const baseAttack = Number(equip.baseStats?.attack ?? equip.attack ?? 0) || 0;
+    const baseDefense = Number(equip.baseStats?.defense ?? equip.defense ?? 0) || 0;
+    const multiplier = getEquipQualityMultiplier(equip.quality);
+
+    return {
+      attack: Math.round(baseAttack * multiplier),
+      defense: Math.round(baseDefense * multiplier)
+    };
+  }
+
   function getMaxHpValue() {
     const p = g.player || { level: 1 };
     const baseHp = 100;
     const levelBonus = ((p.level || 1) - 1) * 20;
-    const cultivationBonus = typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("hp") : 0;
-    return baseHp + levelBonus + cultivationBonus;
+    const cultivationFlat = typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("hp") : 0;
+
+    const subtotal = baseHp + levelBonus + cultivationFlat;
+    const hpPct = getCultivationPercent("hp");
+    return Math.floor(subtotal * (1 + hpPct));
   }
 
   function getMaxMpValue() {
     const p = g.player || { level: 1 };
     const baseMp = 80;
     const levelBonus = ((p.level || 1) - 1) * 10;
-    const cultivationBonus = typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("mp") : 0;
-    return baseMp + levelBonus + cultivationBonus;
+    const cultivationFlat = typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("mp") : 0;
+
+    const subtotal = baseMp + levelBonus + cultivationFlat;
+    const mpPct = getCultivationPercent("mp");
+    return Math.floor(subtotal * (1 + mpPct));
   }
 
   function getEquipBonusValue() {
     const p = g.player || { equips: {} };
     const equips = p.equips || {};
-    const data = g.__JH_DATA__?.equipData || g.equipData || {};
+    const data = getEquipDataMap();
 
     let attack = 0;
     let defense = 0;
 
-    if (equips.weapon && data[equips.weapon]) {
-      const weapon = data[equips.weapon];
-      attack += weapon.attack || weapon.baseStats?.attack || 0;
-      defense += weapon.defense || weapon.baseStats?.defense || 0;
-    }
-
-    if (equips.armor && data[equips.armor]) {
-      const armor = data[equips.armor];
-      attack += armor.attack || armor.baseStats?.attack || 0;
-      defense += armor.defense || armor.baseStats?.defense || 0;
-    }
-
-    if (equips.shoes && data[equips.shoes]) {
-      const shoes = data[equips.shoes];
-      attack += shoes.attack || shoes.baseStats?.attack || 0;
-      defense += shoes.defense || shoes.baseStats?.defense || 0;
-    }
+    [equips.weapon, equips.armor, equips.shoes].forEach((equipName) => {
+      if (!equipName || !data[equipName]) return;
+      const scaled = getScaledEquipStats(data[equipName]);
+      attack += scaled.attack;
+      defense += scaled.defense;
+    });
 
     if (typeof g.getCultivationBonus === "function") {
       attack += g.getCultivationBonus("attack");
       defense += g.getCultivationBonus("defense");
     }
 
-    return { attack, defense };
+    const attackPct = getCultivationPercent("attack");
+    const defensePct = getCultivationPercent("defense");
+
+    return {
+      attack: Math.floor(attack * (1 + attackPct)),
+      defense: Math.floor(defense * (1 + defensePct))
+    };
   }
 
   function getPowerValueSafe() {
@@ -65,10 +105,35 @@
     return levelScore + baseScore + equipScore + expScore;
   }
 
+  function getStatAnchorSnapshot(level) {
+    const safeLevel = Math.max(1, Math.floor(Number(level) || 1));
+    const baseHp = 100 + (safeLevel - 1) * 20;
+    const baseMp = 80 + (safeLevel - 1) * 10;
+
+    const hpPct = getCultivationPercent("hp");
+    const mpPct = getCultivationPercent("mp");
+
+    return {
+      level: safeLevel,
+      hpBase: baseHp,
+      mpBase: baseMp,
+      hpFinal: Math.floor((baseHp + (typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("hp") : 0)) * (1 + hpPct)),
+      mpFinal: Math.floor((baseMp + (typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("mp") : 0)) * (1 + mpPct))
+    };
+  }
+
+  function getBalanceAnchors() {
+    return [1, 20, 40].map(getStatAnchorSnapshot);
+  }
+
   g.__JH_SELECTORS__ = {
+    getEquipQualityMeta,
+    getEquipQualityMultiplier,
+    getScaledEquipStats,
     getMaxHpValue,
     getMaxMpValue,
     getEquipBonusValue,
-    getPowerValueSafe
+    getPowerValueSafe,
+    getBalanceAnchors
   };
 })(window);
