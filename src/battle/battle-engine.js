@@ -155,6 +155,8 @@
     addLog("success", `【胜利】你击败了 ${monsterName}！获得银两 ${moneyGain}，经验 ${expGain}`);
     setNotice("success", `胜利！银两 +${moneyGain}，经验 +${expGain}`);
 
+    player.states = [];
+    player.shield = 0;
     global.currentBattle = null;
     renderBattleInHall();
   }
@@ -165,6 +167,8 @@
     addLog("error", "你被怪物击败了！");
     setNotice("error", "你输了，先去休息恢复吧。");
 
+    player.states = [];
+    player.shield = 0;
     global.currentBattle = null;
     renderBattleInHall();
   }

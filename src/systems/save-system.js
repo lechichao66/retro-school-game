@@ -2,7 +2,7 @@
   const g = global || window;
 
   const SAVE_KEY = "jianghu_save_v03";
-  const SAVE_VERSION = 4;
+  const SAVE_VERSION = 5;
 
   function getDefaultSkills() {
     return ["ironSkin", "quickSlash"];
@@ -34,9 +34,11 @@
     playerRef.sectReputation = Math.max(0, Number(playerRef.sectReputation) || 0);
 
     if (!playerRef.inventory || typeof playerRef.inventory !== "object") playerRef.inventory = {};
-    if (!playerRef.equips || typeof playerRef.equips !== "object") {
-      playerRef.equips = { weapon: "", armor: "", shoes: "" };
-    }
+    if (!playerRef.equips || typeof playerRef.equips !== "object") playerRef.equips = {};
+    const equipSlots = ["weapon", "armor", "hat", "belt", "shoes", "necklace", "artifact"];
+    equipSlots.forEach((slot) => {
+      if (typeof playerRef.equips[slot] !== "string") playerRef.equips[slot] = "";
+    });
 
     if (g.__JH_CULTIVATION_SYSTEM__ && typeof g.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
       g.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation(playerRef);

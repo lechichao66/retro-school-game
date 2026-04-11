@@ -70,24 +70,29 @@
     let attack = 0;
     let defense = 0;
 
-    [equips.weapon, equips.armor, equips.shoes].forEach((equipName) => {
+    [equips.weapon, equips.armor, equips.hat, equips.belt, equips.shoes, equips.necklace, equips.artifact].forEach((equipName) => {
       if (!equipName || !data[equipName]) return;
       const scaled = getScaledEquipStats(data[equipName]);
       attack += scaled.attack;
       defense += scaled.defense;
     });
 
+    const equipAttack = attack;
+    const equipDefense = defense;
+
+    let cultivationAttack = 0;
+    let cultivationDefense = 0;
     if (typeof g.getCultivationBonus === "function") {
-      attack += g.getCultivationBonus("attack");
-      defense += g.getCultivationBonus("defense");
+      cultivationAttack = g.getCultivationBonus("attack");
+      cultivationDefense = g.getCultivationBonus("defense");
     }
 
     const attackPct = getCultivationPercent("attack");
     const defensePct = getCultivationPercent("defense");
 
     return {
-      attack: Math.floor(attack * (1 + attackPct)),
-      defense: Math.floor(defense * (1 + defensePct))
+      attack: Math.floor(equipAttack + cultivationAttack * (1 + attackPct)),
+      defense: Math.floor(equipDefense + cultivationDefense * (1 + defensePct))
     };
   }
 

@@ -27,7 +27,11 @@ function defaultPlayer() {
     equips: {
       weapon: "",
       armor: "",
-      shoes: ""
+      hat: "",
+      belt: "",
+      shoes: "",
+      necklace: "",
+      artifact: ""
     },
 
     cultivation: {
