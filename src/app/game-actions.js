@@ -88,7 +88,30 @@
   function applySectSkills(sectName) {
     const sect = (sectList || []).find((x) => x.name === sectName);
     const baseSkills = ["ironSkin", "quickSlash"];
+    if (player.level < 10) {
+      player.skills = baseSkills;
+      return;
+    }
     player.skills = [...new Set([...(sect?.starterSkills || []), ...baseSkills])];
+  }
+
+  function updateCombatSkillLoadout() {
+    if (player.level < 10) {
+      player.skills = ["ironSkin", "quickSlash"];
+      if (!player.martial) player.martial = { mastery: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
+      player.martial.activeSkill = "basic_fist";
+      return;
+    }
+    applySectSkills(player.sect);
+    const sectConfig = martialArtsBySect[player.sect] || { skills: [] };
+    const learned = player.martial?.learned || [];
+    const sectSkill = (sectConfig.skills || []).find((x) => learned.includes(x.id));
+    player.martial.activeSkill = sectSkill?.id || "basic_fist";
+  }
+
+  function getSectSkillById(skillId) {
+    const sectConfig = martialArtsBySect[player.sect] || martialArtsBySect["无门无派"] || { skills: [] };
+    return (sectConfig.skills || []).find((x) => x.id === skillId) || null;
   }
 
   function fakeChat() {
@@ -116,9 +139,9 @@
   }
 
   function work() {
-    if (player.hp < 15) {
-      addLog("error", "你体力透支，已经干不动活了。");
-      setNotice("error", "体力不足，无法打工。");
+    if (!consumeStamina(18)) {
+      addLog("error", "你体力不足，已经干不动活了。");
+      setNotice("error", "体力不足（需18点），无法打工。");
       refreshCurrentView();
       return;
     }
@@ -126,13 +149,12 @@
     let income = 15;
     if (player.sect === "丐帮") income += 5;
 
-    loseHp(10);
     player.money += income;
     gainExp(10);
 
-    addLog("event", `你辛苦劳作了一阵，银两 +${income}，经验 +10。`);
+    addLog("event", `你辛苦劳作了一阵，消耗体力18点，银两 +${income}，经验 +10。`);
     setNotice("success", `打工成功：银两 +${income}，经验 +10。`);
-    onPlayerActionProgress("bubble");
+    onPlayerActionProgress("work");
     updateAll();
     refreshCurrentView();
   }
@@ -161,8 +183,11 @@
   function rest() {
     recoverHp(40);
     recoverMp(30);
-    addLog("event", "客栈修整完毕，气血与内力都有恢复。");
-    setNotice("success", "休息成功：状态恢复。");
+    recoverStamina(30);
+    recoverVigor(30);
+    player.lastRecoveryAt = Date.now();
+    addLog("event", "客栈修整完毕，气血、内力、体力与活力均有恢复。");
+    setNotice("success", "休息成功：状态与体力活力已恢复。");
     updateAll();
     refreshCurrentView();
   }
@@ -264,9 +289,12 @@
 
     player.sect = sect.name;
     applySectSkills(sect.name);
-    if (!player.martial || typeof player.martial !== "object") player.martial = { title: "", mastery: {}, realm: {} };
+    if (!player.martial || typeof player.martial !== "object") player.martial = { title: "", mastery: {}, realm: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
     if (!player.martial.mastery) player.martial.mastery = {};
     if (!player.martial.realm) player.martial.realm = {};
+    if (!Array.isArray(player.martial.learned)) player.martial.learned = ["basic_fist"];
+    if (!player.martial.learned.includes("basic_fist")) player.martial.learned.push("basic_fist");
+    updateCombatSkillLoadout();
     addLog("sys", `你已加入 ${sect.name}。`);
     setNotice("success", `加入门派成功：${sect.name}`);
     updateAll();
@@ -292,8 +320,13 @@
       return;
     }
 
+    if (!consumeVigor(10)) {
+      setNotice("error", "活力不足（需10点），无法执行职业动作。");
+      showJob();
+      return;
+    }
+
     if (player.job === "采冰") {
-      loseHp(6);
       addItem("冰水", 1);
       onPlayerActionProgress("collect", { name: "冰水", count: 1 });
       player.money += 2;
@@ -301,7 +334,6 @@
       addLog("event", "你辛苦采来一份冰水。获得【冰水 x1】，银两 +2，经验 +10。");
       setNotice("success", "职业动作成功：获得冰水 x1。");
     } else if (player.job === "采矿") {
-      loseHp(8);
       addItem("矿石", 1);
       onPlayerActionProgress("collect", { name: "矿石", count: 1 });
       player.money += 3;
@@ -309,7 +341,6 @@
       addLog("event", "你在矿洞挖到一块矿石。获得【矿石 x1】，银两 +3，经验 +12。");
       setNotice("success", "职业动作成功：获得矿石 x1。");
     } else if (player.job === "伐木") {
-      loseHp(7);
       addItem("木头", 1);
       onPlayerActionProgress("collect", { name: "木头", count: 1 });
       player.money += 3;
@@ -342,7 +373,6 @@
       }
     } else if (player.job === "渔夫") {
       const roll = Math.random();
-      loseHp(5);
 
       if (roll < 0.4) {
         addItem("小鱼", 2);
@@ -366,6 +396,70 @@
 
     updateAll();
     showJob();
+  }
+
+  function learnMartialSkill(skillId) {
+    if (player.level < 10) {
+      setNotice("error", "10级后才能正式学习门派武功。");
+      showSect();
+      return;
+    }
+    const skill = getSectSkillById(skillId);
+    if (!skill) return;
+    const req = skill.learnReq || {};
+    if (player.level < (req.level || 1)) return setNotice("error", "等级不足，无法学习。"), showSect();
+    if ((player.sectContribution || 0) < (req.contribution || 0)) return setNotice("error", "门派贡献不足。"), showSect();
+    if (player.money < (req.money || 0)) return setNotice("error", "银两不足。"), showSect();
+    player.sectContribution -= req.contribution || 0;
+    player.money -= req.money || 0;
+    if (!player.martial.learned.includes(skill.id)) player.martial.learned.push(skill.id);
+    updateCombatSkillLoadout();
+    addLog("success", `你已学会门派武功【${skill.name}】。`);
+    setNotice("success", `学习成功：${skill.name}`);
+    showSect();
+  }
+
+  function trainMartialSkill(skillId, mode) {
+    const skill = getSectSkillById(skillId) || (martialArtsBySect["无门无派"]?.skills || []).find((x) => x.id === skillId);
+    if (!skill) return;
+    if (!player.martial.learned.includes(skillId)) {
+      setNotice("error", "尚未学会该武功。");
+      showSect();
+      return;
+    }
+    if (mode === "resource") {
+      if (player.money < 80 || !consumeVigor(12)) {
+        setNotice("error", "银两80与活力12不足，无法研习。");
+        showSect();
+        return;
+      }
+      player.money -= 80;
+      player.martial.mastery[skillId] = (player.martial.mastery[skillId] || 0) + 12;
+      addLog("event", `你消耗银两与活力研习【${skill.name}】，熟练度 +12。`);
+    } else {
+      player.martial.mastery[skillId] = (player.martial.mastery[skillId] || 0) + 4;
+      addLog("event", `你在实战中体悟【${skill.name}】，熟练度 +4。`);
+    }
+    setNotice("success", `${skill.name} 熟练度提升。`);
+    showSect();
+  }
+
+  function redeemSectReward(type) {
+    const costMap = { title: 200, pill: 120, material: 80, passive: 300 };
+    const cost = costMap[type] || 0;
+    if ((player.sectContribution || 0) < cost) {
+      setNotice("error", `门派贡献不足（需要${cost}）。`);
+      showSect();
+      return;
+    }
+    player.sectContribution -= cost;
+    if (type === "title") player.title = `${player.sect}入室弟子`;
+    if (type === "pill") addItem("大还丹", 1);
+    if (type === "material") addItem("玄铁", 1);
+    if (type === "passive") player.sectReputation = (player.sectReputation || 0) + 20;
+    addLog("success", `你完成了师门兑换：${type}。`);
+    setNotice("success", "师门兑换成功。");
+    showSect();
   }
 
   function saveGameBtn() {
@@ -513,6 +607,7 @@
     claimTask,
     onMonsterDefeated,
     onPlayerActionProgress,
+    updateCombatSkillLoadout,
     saveGameBtn,
     loadGameBtn,
     resetGameBtn,
@@ -520,6 +615,9 @@
     debugAddMoney,
     debugCultivateAll,
     debugFullRecover,
-    debugGrantTestGear
+    debugGrantTestGear,
+    learnMartialSkill,
+    trainMartialSkill,
+    redeemSectReward
   };
 })(window);

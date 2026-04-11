@@ -2,6 +2,7 @@
   const g = global || window;
 
   function updateTopBar() {
+    applyNaturalRecovery();
     clampPlayer();
 
     const panel = getPlayerPanelData();
@@ -11,6 +12,8 @@
     document.getElementById("title").textContent = panel.title;
     document.getElementById("hp").textContent = `${panel.hp} / ${panel.maxHp}`;
     document.getElementById("mp").textContent = `${panel.mp} / ${panel.maxMp}`;
+    document.getElementById("stamina").textContent = `${player.stamina?.current || 0} / ${player.stamina?.max || 0}`;
+    document.getElementById("vigor").textContent = `${player.vigor?.current || 0} / ${player.vigor?.max || 0}`;
     document.getElementById("money").textContent = panel.money;
     document.getElementById("exp").textContent = `${panel.exp} / ${panel.level * 100}`;
     document.getElementById("level").textContent = panel.level;
@@ -131,6 +134,8 @@
         <button class="action-btn" style="background:#800000; color:white;" onclick="startAdventure()">
           探索${loc}
         </button>
+        <button class="action-btn" onclick="showBattleLog()">战斗日志</button>
+        <button class="action-btn" onclick="showChangelog()">更新日志</button>
       </div>
 
       <div id="hallLogBox" class="log-box" style="height:460px; min-height:460px; max-height:460px; overflow-y:auto;"></div>
@@ -163,6 +168,8 @@
           <h3>当前属性</h3>
           <div class="list-line">气血：${player.hp} / ${getMaxHp()}</div>
           <div class="list-line">内力：${player.mp} / ${getMaxMp()}</div>
+          <div class="list-line">体力：${player.stamina?.current || 0} / ${player.stamina?.max || 0}</div>
+          <div class="list-line">活力：${player.vigor?.current || 0} / ${player.vigor?.max || 0}</div>
           <div class="list-line">银两：${player.money}</div>
           <div class="list-line">攻击加成：${bonus.attack}</div>
           <div class="list-line">防御加成：${bonus.defense}</div>
@@ -240,7 +247,12 @@
       <div class="status-grid">
         <div class="card">
           <h3>当前装备（7部位）</h3>
-          ${slotRows.map(([slot, name, emptyName]) => `<div class="list-line">${name}：${getEquipText(player.equips[slot], emptyName)} ${player.equips[slot] ? `<button class="small-btn" onclick="showEquipDetail('${slot}')">查看详情</button>` : ""}</div>`).join("")}
+          ${slotRows.map(([slot, name, emptyName]) => {
+            const equipName = player.equips[slot];
+            const equip = equipData[equipName];
+            const affixSummary = equip ? `（${getEquipAffixSummary(equip)}）` : "";
+            return `<div class="list-line">${name}：${getEquipText(equipName, emptyName)} ${equipName ? affixSummary : ""} ${equipName ? `<button class="small-btn" onclick="showEquipDetail('${slot}')">查看详情</button>` : ""}</div>`;
+          }).join("")}
         </div>
         <div class="card">
           <h3>装备总加成</h3>
@@ -277,7 +289,7 @@
       <div class="list-line">基础属性：攻击 +${baseAttack} / 防御 +${baseDefense}</div>
       <div class="list-line">额外属性：${extraStats}</div>
       <div class="list-line">词缀：${affixes.length ? affixes.map((x) => `${getAffixLabel(x.key || x.name)}+${x.value}`).join("，") : "无"}</div>
-      <div class="list-line">特殊效果：${effects.length ? effects.map((x) => getTermLabel("effect", x.key || x.name)).join("，") : "无"}</div>
+      <div class="list-line">特殊效果：${effects.length ? effects.map((x) => getSpecialEffectText(x)).join("，") : "无"}</div>
       <div class="list-line">说明：${equip.desc || "暂无"}</div>
     `;
   }
@@ -298,7 +310,36 @@
       <div class="table-box scroll-box"><table><thead><tr><th>商品</th><th>说明</th><th>价格</th><th>分类</th><th>购买</th></tr></thead><tbody>${rows || "<tr><td colspan='5'>该分类暂无商品</td></tr>"}</tbody></table></div>`);
   }
   function showMarket() { currentView = "market"; const rows = marketItems.map(item => `<tr><td>${item.name}</td><td>${item.qty}</td><td>${item.price}</td><td>${item.seller}</td><td><button class="small-btn" onclick="buyMarketItem('${item.name}', ${item.price})">购买</button></td></tr>`).join(""); setMainTitle("江湖寄售行"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>物品</th><th>数量</th><th>单价</th><th>卖家</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
-  function showSect() { currentView = "sect"; const rows = sectList.map((item, i) => `<tr><td>${item.name}</td><td>${item.req}</td><td>${item.intro}<br><small style='color:#666;'>秘技：${item.passiveName || "暂无"}（${item.passiveDesc || "待开放"}）</small></td><td><button class="small-btn" onclick="joinSect(${i})">加入</button></td></tr>`).join(""); const currentSect = sectList.find((x) => x.name === player.sect); setMainTitle("江湖门派"); setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'><b>当前秘技：</b>${currentSect?.passiveName || "暂无"} ${currentSect?.passiveDesc || ""}</div><div class='list-line'>门派称号：<button class='small-btn' disabled>即将开放</button>　师门兑换：<button class='small-btn' disabled>即将开放</button>　特殊丹药：<button class='small-btn' disabled>即将开放</button></div></div><div class="table-box"><table><thead><tr><th>门派</th><th>要求</th><th>简介</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
+  function showSect() {
+    currentView = "sect";
+    const tab = g.sectTab || "overview";
+    const currentSect = sectList.find((x) => x.name === player.sect);
+    const sectMartial = martialArtsBySect[player.sect] || martialArtsBySect["无门无派"] || { skills: [] };
+    const rows = sectList.map((item, i) => `<tr><td>${item.name}</td><td>${item.req}</td><td>${item.intro}<br><small style='color:#666;'>秘技：${item.passiveName || "暂无"}（${item.passiveDesc || "待开放"}）</small></td><td><button class="small-btn" onclick="joinSect(${i})">加入</button></td></tr>`).join("");
+    const martialRows = (sectMartial.skills || []).map((skill) => {
+      const mastery = player.martial?.mastery?.[skill.id] || 0;
+      const learned = (player.martial?.learned || []).includes(skill.id);
+      return `<div class='card'><h3>${skill.name}</h3><div class='list-line'>学习条件：等级${skill.learnReq?.level || 1}、贡献${skill.learnReq?.contribution || 0}、银两${skill.learnReq?.money || 0}</div><div class='list-line'>当前熟练度：${mastery}</div><div class='list-line'>效果：${skill.effect}</div><div class='shop-actions'>${learned ? "<button class='small-btn' disabled>已学会</button>" : `<button class='small-btn' onclick="learnMartialSkill('${skill.id}')">学习</button>`}<button class='small-btn' onclick="trainMartialSkill('${skill.id}','battle')">战斗研习+1次</button><button class='small-btn' onclick="trainMartialSkill('${skill.id}','resource')">银两研习</button></div></div>`;
+    }).join("");
+    const sectTaskInfo = `<div class='card'><h3>师门任务用途（首版）</h3><div class='list-line'>门派贡献：${player.sectContribution || 0}　门派声望：${player.sectReputation || 0}</div><div class='list-line'>可用于武功学习、门派称号、特殊丹药/材料、秘技被动解锁。</div><div class='shop-actions'><button class='small-btn' onclick="redeemSectReward('title')">兑换门派称号（200贡献）</button><button class='small-btn' onclick="redeemSectReward('pill')">兑换特殊丹药（120贡献）</button><button class='small-btn' onclick="redeemSectReward('material')">兑换特殊材料（80贡献）</button><button class='small-btn' onclick="redeemSectReward('passive')">解锁门派秘技被动（300贡献）</button></div></div>`;
+    const exchangePanel = `<div class='card'><h3>师门兑换</h3><div class='list-line'>本页为首版入口，后续将扩展更多门派专属商品。</div>${sectTaskInfo}</div>`;
+    const titlePanel = `<div class='card'><h3>门派称号</h3><div class='list-line'>当前称号：${player.title}</div><div class='list-line'>完成师门任务并积累贡献可提升门派身份。</div>${sectTaskInfo}</div>`;
+    const contentMap = {
+      overview: `<div class='card'><div class='list-line'><b>当前门派：</b>${player.sect}</div><div class='list-line'><b>当前秘技：</b>${currentSect?.passiveName || "暂无"} ${currentSect?.passiveDesc || ""}</div><div class='list-line'>门派页面整合：总览 / 武功 / 师门任务 / 门派称号 / 师门兑换</div></div><div class="table-box"><table><thead><tr><th>门派</th><th>要求</th><th>简介</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`,
+      martial: `<div class='card'><div class='list-line'><b>武功阶段规则：</b>10级前使用基础技能，10级后以门派武功为主，基础技能保留为默认技。</div></div><div class='status-grid'>${martialRows || "<div class='card'>当前门派武功未开放。</div>"}</div>`,
+      tasks: sectTaskInfo,
+      title: titlePanel,
+      exchange: exchangePanel
+    };
+    setMainTitle("江湖门派");
+    setMainContent(`${renderNoticeHtml()}<div class='shop-actions'>${[
+      ["overview", "门派总览"],
+      ["martial", "门派武功"],
+      ["tasks", "师门任务"],
+      ["title", "门派称号"],
+      ["exchange", "师门兑换"]
+    ].map(([key, label]) => `<button class='action-btn' style='background:${tab === key ? "#800000" : "#f2e9d8"};color:${tab === key ? "#fff" : "#222"};' onclick="setSectTab('${key}')">${label}</button>`).join("")}</div>${contentMap[tab] || contentMap.overview}`);
+  }
   function showRank() { currentView = "rank"; const rankData = [{ name: player.name, value: getPowerValue(), tag: "当前角色" }, { name: "秋风", value: 860, tag: "唐门" }, { name: "断水", value: 780, tag: "武当" }, { name: "孤城", value: 730, tag: "幽月宫" }, { name: "听雪", value: 650, tag: "世外桃源" }].sort((a, b) => b.value - a.value); const rows = rankData.map((item, i) => `<tr><td>${i + 1}</td><td>${item.name}</td><td>${item.value}</td><td>${item.tag}</td></tr>`).join(""); setMainTitle("江湖排行"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>排名</th><th>玩家</th><th>综合值</th><th>备注</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
   function showJob() { currentView = "job"; const rows = jobList.map((item, i) => `<tr><td>${item.name}</td><td>${item.intro}</td><td>${item.gain}</td><td><button class="small-btn" onclick="chooseJob(${i})">入职</button></td></tr>`).join(""); setMainTitle("江湖职业"); setMainContent(`${renderNoticeHtml()}<div class="notice">当前职业：<b>${player.job}</b></div><div class="table-box"><table><thead><tr><th>职业</th><th>说明</th><th>产出</th><th>选择</th></tr></thead><tbody>${rows}</tbody></table></div><div class="shop-actions"><button class="action-btn" onclick="doJob()">执行职业动作</button></div>`); }
   function showPharmacy() { currentView = "pharmacy"; const recipeHtml = recipes.map((r, i) => { const canCraft = canCraftRecipe(r); const materialText = Object.keys(r.materials).map(name => { const own = player.inventory[name] || 0; return `${name}(${own}/${r.materials[name]})`; }).join("，"); return `<div class="card"><h3>${r.name}</h3><div class="list-line">${r.effect}</div><div class="list-line">材料：${materialText}</div><button class="small-btn" ${canCraft ? "" : "disabled"} onclick="craftMedicine(${i})">炼制</button></div>`; }).join(""); setMainTitle("神农药房"); setMainContent(`${renderNoticeHtml()}<div class="status-grid">${recipeHtml || "<div class='card'>暂无药方</div>"}</div>`); }
@@ -333,15 +374,8 @@
   }
 
   function showMartial() {
-    currentView = "martial";
-    const sectConfig = martialArtsBySect[player.sect] || martialArtsBySect["无门无派"] || { skills: [] };
-    const cards = (sectConfig.skills || []).map((skill) => {
-      const mastery = player.martial?.mastery?.[skill.id] || 0;
-      const realm = mastery >= 300 ? "大成" : mastery >= 160 ? "精通" : mastery >= 60 ? "熟练" : (skill.realm || "入门");
-      return `<div class='card'><h3>${skill.name}</h3><div class='list-line'>熟练度：${mastery}</div><div class='list-line'>境界：${realm}</div><div class='list-line'>效果：${skill.effect}</div></div>`;
-    }).join("");
-    setMainTitle("门派武功");
-    setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'><b>当前门派：</b>${player.sect}</div><div class='list-line'>${sectConfig.intro || "暂无门派武学说明。"}</div><div class='list-line'><b>门派秘技：</b>${sectConfig.passive || "暂无"}</div></div><div class='status-grid'>${cards || "<div class='card'>当前门派武功未开放。</div>"}</div>`);
+    g.sectTab = "martial";
+    showSect();
   }
 
   function showBattleLog() {
@@ -430,6 +464,7 @@
     showChangelog,
     showDebugPanel,
     doCultivationUpgrade,
+    setSectTab(tab) { g.sectTab = tab; showSect(); },
     showEquipDetail(slot) { g.currentEquipDetailSlot = slot; showEquip(); },
     setShopCategory(category) { g.shopCategory = category; showShop(); },
     setTaskTab(tab) { g.taskTab = tab; g.taskPage = 1; showTask(); },
