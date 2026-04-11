@@ -42,6 +42,11 @@
       },
 
       skills: ["ironSkin", "quickSlash"],
+      martial: {
+        title: "",
+        mastery: {},
+        realm: {}
+      },
       activeTasks: [],
       taskProgress: {},
       completedTasks: [],

@@ -53,9 +53,11 @@ window.__JH_DATA__.equipData = {
   麻布腰带: createEquipSchema({ quality: "common", slot: "belt", baseStats: { attack: 0, defense: 2 }, extraStats: { hp: 15, mp: 10 }, desc: "基础护腰，便于蓄力" }),
   铁扣腰带: createEquipSchema({ quality: "fine", slot: "belt", baseStats: { attack: 1, defense: 5 }, extraStats: { hp: 35, mp: 25 }, desc: "稳固腰腹，内力更顺" }),
 
-  铜环项链: createEquipSchema({ quality: "fine", slot: "necklace", baseStats: { attack: 4, defense: 1 }, affixes: [{ key: "crit", name: "会心", value: 3 }, { key: "crit_dmg", name: "爆伤", value: 6 }], desc: "能提升攻击命中要害的机会" }),
+  铜环项链: createEquipSchema({ quality: "fine", slot: "necklace", baseStats: { attack: 4, defense: 1 }, affixes: [{ key: "crit", name: "会心", value: 3 }, { key: "crit_dmg", name: "暴伤", value: 6 }], desc: "能提升攻击命中要害的机会" }),
   赤炎坠: createEquipSchema({ quality: "rare", slot: "necklace", baseStats: { attack: 8, defense: 1 }, affixes: [{ key: "crit", name: "会心", value: 5 }, { key: "weak_hit", name: "弱点伤害", value: 8 }], desc: "偏向爆发输出的坠饰" }),
 
   青木法印: createEquipSchema({ quality: "fine", slot: "artifact", baseStats: { attack: 3, defense: 4 }, extraStats: { resist: 3, trueDamage: 4 }, specialEffects: [{ key: "skill_boost", name: "技能强化", desc: "预留：技能系数提高" }], desc: "初阶法宝，提供均衡加持" }),
-  镇岳法玺: createEquipSchema({ quality: "rare", slot: "artifact", baseStats: { attack: 6, defense: 8 }, extraStats: { resist: 6, trueDamage: 8 }, specialEffects: [{ key: "stagger", name: "震慑", desc: "预留：概率打断敌方动作" }], desc: "高阶法宝，偏向特殊效果" })
+  镇岳法玺: createEquipSchema({ quality: "rare", slot: "artifact", baseStats: { attack: 6, defense: 8 }, extraStats: { resist: 6, trueDamage: 8 }, specialEffects: [{ key: "stagger", name: "震慑", desc: "预留：概率打断敌方动作" }], desc: "高阶法宝，偏向特殊效果" }),
+  玄武盔: createEquipSchema({ quality: "rare", slot: "hat", baseStats: { attack: 1, defense: 10 }, extraStats: { hp: 55, resist: 4, dmgReduce: 2 }, desc: "标准测试头盔，防御表现稳定。" }),
+  龙纹腰带: createEquipSchema({ quality: "rare", slot: "belt", baseStats: { attack: 2, defense: 8 }, extraStats: { hp: 50, mp: 35, trueDamage: 4 }, desc: "标准测试腰带，攻防属性均衡。" })
 };

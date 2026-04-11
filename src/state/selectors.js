@@ -40,6 +40,57 @@
     };
   }
 
+  function sumEquipAdvancedStats() {
+    const p = g.player || { equips: {} };
+    const equips = p.equips || {};
+    const data = getEquipDataMap();
+    const total = {
+      crit: 0,
+      crit_dmg: 0,
+      resist: 0,
+      trueDamage: 0,
+      weak_hit: 0,
+      dmgReduce: 0
+    };
+
+    [equips.weapon, equips.armor, equips.hat, equips.belt, equips.shoes, equips.necklace, equips.artifact].forEach((equipName) => {
+      const equip = data[equipName];
+      if (!equip) return;
+      const extra = equip.extraStats || {};
+      total.resist += Number(extra.resist || 0);
+      total.trueDamage += Number(extra.trueDamage || 0);
+      total.weak_hit += Number(extra.weak_hit || 0);
+      total.dmgReduce += Number(extra.dmgReduce || 0);
+
+      (equip.affixes || []).forEach((affix) => {
+        if (!affix) return;
+        const value = Number(affix.value || 0);
+        if (affix.key === "crit") total.crit += value;
+        if (affix.key === "crit_dmg") total.crit_dmg += value;
+        if (affix.key === "weak_hit") total.weak_hit += value;
+        if (affix.key === "dmgReduce") total.dmgReduce += value;
+      });
+    });
+    return total;
+  }
+
+  function getDerivedCombatStatsValue() {
+    const p = g.player || {};
+    const sect = (g.sectList || []).find((x) => x.name === p.sect) || {};
+    const passive = sect.passiveBonus || {};
+    const equipStats = sumEquipAdvancedStats();
+    const cultResist = typeof g.getCultivationBonus === "function" ? g.getCultivationBonus("resist") : 0;
+
+    return {
+      critRate: Math.min(75, 5 + equipStats.crit + Number(passive.critRate || 0)),
+      critDamage: 150 + equipStats.crit_dmg + Number(passive.critDamage || 0),
+      resist: equipStats.resist + cultResist + Number(passive.resist || 0),
+      trueDamage: equipStats.trueDamage + Number(passive.trueDamage || 0),
+      weakHit: equipStats.weak_hit + Number(passive.weakHit || 0),
+      damageReduce: equipStats.dmgReduce + Number(passive.damageReduce || 0)
+    };
+  }
+
   function getMaxHpValue() {
     const p = g.player || { level: 1 };
     const baseHp = 100;
@@ -109,9 +160,7 @@
     const levelScore = (p.level || 1) * 120;
     const baseScore = Math.floor(maxHp * 0.9 + maxMp * 1.2);
     const equipScore = bonus.attack * 8 + bonus.defense * 6;
-    const expScore = Math.floor((p.exp || 0) * 0.2);
-
-    return levelScore + baseScore + equipScore + expScore;
+    return levelScore + baseScore + equipScore;
   }
 
   function getStatAnchorSnapshot(level) {
@@ -143,6 +192,7 @@
     getMaxMpValue,
     getEquipBonusValue,
     getPowerValueSafe,
+    getDerivedCombatStatsValue,
     getBalanceAnchors
   };
 })(window);

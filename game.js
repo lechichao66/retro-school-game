@@ -38,6 +38,8 @@ function showSect() { return window.__JH_UI_RENDER__.showSect(); }
 function showRank() { return window.__JH_UI_RENDER__.showRank(); }
 function showJob() { return window.__JH_UI_RENDER__.showJob(); }
 function showTask() { return window.__JH_UI_RENDER__.showTask(); }
+function showMartial() { return window.__JH_UI_RENDER__.showMartial(); }
+function showBattleLog() { return window.__JH_UI_RENDER__.showBattleLog(); }
 function showPharmacy() { return window.__JH_UI_RENDER__.showPharmacy(); }
 function showTrain() { return window.__JH_UI_RENDER__.showTrain(); }
 function doCultivationUpgrade(type) { return window.__JH_UI_RENDER__.doCultivationUpgrade(type); }
@@ -90,6 +92,8 @@ window.showSect = showSect;
 window.showRank = showRank;
 window.showJob = showJob;
 window.showTask = showTask;
+window.showMartial = showMartial;
+window.showBattleLog = showBattleLog;
 window.showPharmacy = showPharmacy;
 
 window.train = train;
@@ -117,6 +121,8 @@ window.acceptTask = acceptTask;
 window.claimTask = claimTask;
 window.showEquipDetail = function showEquipDetail(slot) { return window.__JH_UI_RENDER__.showEquipDetail(slot); };
 window.setShopCategory = function setShopCategory(category) { return window.__JH_UI_RENDER__.setShopCategory(category); };
+window.setTaskTab = function setTaskTab(tab) { return window.__JH_UI_RENDER__.setTaskTab(tab); };
+window.setTaskPage = function setTaskPage(step) { return window.__JH_UI_RENDER__.setTaskPage(step); };
 window.onMonsterDefeated = function onMonsterDefeated(name, type) { return window.__JH_GAME_ACTIONS__.onMonsterDefeated(name, type); };
 window.onPlayerActionProgress = function onPlayerActionProgress(action, payload) { return window.__JH_GAME_ACTIONS__.onPlayerActionProgress(action, payload); };
 

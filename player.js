@@ -43,6 +43,11 @@ function defaultPlayer() {
     },
 
     skills: ["ironSkin", "quickSlash"],
+    martial: {
+      title: "",
+      mastery: {},
+      realm: {}
+    },
     states: [],
     shield: 0,
     currentMap: "新手村"

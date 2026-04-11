@@ -4,9 +4,9 @@ const CULTIVATION_CONFIG = {
     name: "攻击修炼",
     maxLevel: 30,
     baseCost: 30,
-    growthCost: 1.2,
-    effectPerLevel: 3,
-    percentPerLevel: 0.005,
+    growthCost: 1.18,
+    effectPerLevel: 6,
+    percentPerLevel: 0.012,
     effectText: "攻击 +"
   },
   defense: {
@@ -14,9 +14,9 @@ const CULTIVATION_CONFIG = {
     name: "防御修炼",
     maxLevel: 30,
     baseCost: 30,
-    growthCost: 1.2,
-    effectPerLevel: 3,
-    percentPerLevel: 0.005,
+    growthCost: 1.18,
+    effectPerLevel: 6,
+    percentPerLevel: 0.012,
     effectText: "防御 +"
   },
   hp: {
@@ -24,9 +24,9 @@ const CULTIVATION_CONFIG = {
     name: "气血修炼",
     maxLevel: 30,
     baseCost: 40,
-    growthCost: 1.22,
-    effectPerLevel: 14,
-    percentPerLevel: 0.006,
+    growthCost: 1.2,
+    effectPerLevel: 30,
+    percentPerLevel: 0.015,
     effectText: "气血上限 +"
   },
   mp: {
@@ -34,9 +34,9 @@ const CULTIVATION_CONFIG = {
     name: "内力修炼",
     maxLevel: 30,
     baseCost: 40,
-    growthCost: 1.22,
-    effectPerLevel: 10,
-    percentPerLevel: 0.006,
+    growthCost: 1.2,
+    effectPerLevel: 22,
+    percentPerLevel: 0.015,
     effectText: "内力上限 +"
   },
   resist: {

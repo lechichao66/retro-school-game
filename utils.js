@@ -147,9 +147,7 @@ function getPowerValue() {
   const levelScore = (player.level || 1) * 120;
   const baseScore = Math.floor(maxHp * 0.9 + maxMp * 1.2);
   const equipScore = bonus.attack * 8 + bonus.defense * 6;
-  const expScore = Math.floor((player.exp || 0) * 0.2);
-
-  return levelScore + baseScore + equipScore + expScore;
+  return levelScore + baseScore + equipScore;
 }
 
 function getEquipText(name, emptyText = "未装备") {
@@ -173,7 +171,21 @@ function getEquipQualityMeta(qualityKey) {
 }
 
 function getEquipQualityText(qualityKey) {
-  return getEquipQualityMeta(qualityKey).name || "凡品";
+  const mapped = getTermLabel("quality", qualityKey);
+  return mapped || getEquipQualityMeta(qualityKey).name || "凡品";
+}
+
+function getTermLabel(group, key) {
+  const terms = window.__JH_DATA__?.terminology || {};
+  return terms?.[group]?.[key] || key;
+}
+
+function getStatLabel(key) {
+  return getTermLabel("stat", key);
+}
+
+function getAffixLabel(key) {
+  return getTermLabel("affix", key);
 }
 
 
@@ -285,6 +297,16 @@ function addLog(type, text) {
 
   if (typeof renderHallLog === "function") {
     renderHallLog();
+  }
+}
+
+function addBattleLog(type, text) {
+  if (window.__JH_RUNTIME_STATE__ && typeof window.__JH_RUNTIME_STATE__.pushBattleLog === "function") {
+    window.__JH_RUNTIME_STATE__.pushBattleLog({
+      type: type || "event",
+      text: text || "",
+      time: getNowTime()
+    });
   }
 }
 
