@@ -288,17 +288,27 @@ function renderNoticeHtml() {
 // ===== 6. 经验、升级、恢复 =====
 function gainExp(amount) {
   amount = safeNumber(amount, 0);
-  player.exp += amount;
 
-  while (player.exp >= player.level * 100) {
-    player.exp -= player.level * 100;
-    player.level += 1;
-
-    player.hp = getMaxHp();
-    player.mp = getMaxMp();
-
-    addLog("sys", `【突破】你晋升到了第 ${player.level} 层境界，真气贯通，状态已全满！`);
-    setNotice("success", `升级成功：你已升到 ${player.level} 级，状态回满。`);
+  const levelSystem = window.__JH_LEVEL_SYSTEM__;
+  if (levelSystem && typeof levelSystem.gainExpAndLevelUp === "function") {
+    levelSystem.gainExpAndLevelUp(player, amount, {
+      onLevelUp(nextLevel) {
+        player.hp = getMaxHp();
+        player.mp = getMaxMp();
+        addLog("sys", `【突破】你晋升到了第 ${nextLevel} 层境界，真气贯通，状态已全满！`);
+        setNotice("success", `升级成功：你已升到 ${nextLevel} 级，状态回满。`);
+      }
+    });
+  } else {
+    player.exp += amount;
+    while (player.exp >= player.level * 100) {
+      player.exp -= player.level * 100;
+      player.level += 1;
+      player.hp = getMaxHp();
+      player.mp = getMaxMp();
+      addLog("sys", `【突破】你晋升到了第 ${player.level} 层境界，真气贯通，状态已全满！`);
+      setNotice("success", `升级成功：你已升到 ${player.level} 级，状态回满。`);
+    }
   }
 
   clampPlayer();
@@ -397,44 +407,42 @@ function consumeRecipeMaterials(recipe) {
 
 // ===== 9. 存档兼容处理 =====
 function normalizePlayerAfterLoad() {
-  if (!player) player = {};
-  if (!player.name) player.name = "无名少侠";
-  if (!player.sect) player.sect = "无门无派";
-  if (!player.title) player.title = "江湖小虾";
-  if (!player.job) player.job = "无职业";
-  if (!player.location) player.location = "新手村";
-  if (!player.inventory) player.inventory = {};
-  if (!player.equips) {
-    player.equips = {
-      weapon: "",
-      armor: "",
-      shoes: ""
-    };
+  if (window.__JH_SAVE_SYSTEM__ && typeof window.__JH_SAVE_SYSTEM__.ensurePlayerCompatibility === "function") {
+    player = window.__JH_SAVE_SYSTEM__.ensurePlayerCompatibility(player);
+  } else {
+    if (!player) player = {};
+    if (!player.name) player.name = "无名少侠";
+    if (!player.sect) player.sect = "无门无派";
+    if (!player.title) player.title = "江湖小虾";
+    if (!player.job) player.job = "无职业";
+    if (!player.location) player.location = "新手村";
+    if (!player.inventory) player.inventory = {};
+    if (!player.equips) {
+      player.equips = {
+        weapon: "",
+        armor: "",
+        shoes: ""
+      };
+    }
+    if (!player.cultivation) {
+      player.cultivation = { attack: 0, defense: 0, hp: 0, mp: 0, resist: 0 };
+    }
+    if (!player.skills) player.skills = ["ironSkin", "quickSlash"];
+    if (!player.currentMap) player.currentMap = player.location || "新手村";
+    player.level = safeNumber(player.level, 1);
+    player.hp = safeNumber(player.hp, getMaxHp());
+    player.mp = safeNumber(player.mp, getMaxMp());
+    player.money = safeNumber(player.money, 0);
+    player.exp = safeNumber(player.exp, 0);
   }
-
-  if (!player.cultivation) {
-    player.cultivation = {
-      attack: 0,
-      defense: 0,
-      hp: 0,
-      mp: 0,
-      resist: 0
-    };
-  }
-   if (!player.skills) {
-  player.skills = ["ironSkin", "quickSlash"];
- } 
-  if (!player.currentMap) player.currentMap = player.location || "新手村";
-
-  player.level = safeNumber(player.level, 1);
-  player.hp = safeNumber(player.hp, getMaxHp());
-  player.mp = safeNumber(player.mp, getMaxMp());
-  player.money = safeNumber(player.money, 0);
-  player.exp = safeNumber(player.exp, 0);
 
   clampPlayer();
 }
 function migrateSaveData(saveData) {
+  if (window.__JH_SAVE_SYSTEM__ && typeof window.__JH_SAVE_SYSTEM__.migrateSaveData === "function") {
+    return window.__JH_SAVE_SYSTEM__.migrateSaveData(saveData);
+  }
+
   if (!saveData || typeof saveData !== "object") {
     return {
       saveVersion: 3,
@@ -447,43 +455,21 @@ function migrateSaveData(saveData) {
     saveData.saveVersion = 1;
   }
 
-  // v1 -> v2：加入修炼、状态、护盾、当前地图
   if (saveData.saveVersion < 2) {
-    if (!saveData.player) {
-      saveData.player = defaultPlayer();
-    }
-
+    if (!saveData.player) saveData.player = defaultPlayer();
     if (!saveData.player.cultivation) {
-      saveData.player.cultivation = {
-        attack: 0,
-        defense: 0,
-        hp: 0,
-        mp: 0,
-        resist: 0
-      };
+      saveData.player.cultivation = { attack: 0, defense: 0, hp: 0, mp: 0, resist: 0 };
     }
-
-    if (!saveData.player.states) {
-      saveData.player.states = [];
-    }
-
-    if (typeof saveData.player.shield === "undefined") {
-      saveData.player.shield = 0;
-    }
-
-    if (!saveData.player.currentMap) {
-      saveData.player.currentMap = saveData.player.location || "新手村";
-    }
-
+    if (!saveData.player.states) saveData.player.states = [];
+    if (typeof saveData.player.shield === "undefined") saveData.player.shield = 0;
+    if (!saveData.player.currentMap) saveData.player.currentMap = saveData.player.location || "新手村";
     saveData.saveVersion = 2;
   }
-     // v2 -> v3：加入玩家技能
-   if (saveData.saveVersion < 3) {
-  if (!saveData.player.skills) {
-    saveData.player.skills = ["ironSkin", "quickSlash"];
+
+  if (saveData.saveVersion < 3) {
+    if (!saveData.player.skills) saveData.player.skills = ["ironSkin", "quickSlash"];
+    saveData.saveVersion = 3;
   }
 
-  saveData.saveVersion = 3;
-   }
   return saveData;
 }

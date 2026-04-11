@@ -47,6 +47,9 @@ const CULTIVATION_CONFIG = {
 };
 
 function getCultivationLevel(type) {
+  if (window.__JH_CULTIVATION_SYSTEM__ && typeof window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
+    window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation(player);
+  }
   if (!player.cultivation) return 0;
   return player.cultivation[type] || 0;
 }
@@ -81,7 +84,9 @@ function upgradeCultivation(type) {
   const cfg = CULTIVATION_CONFIG[type];
   if (!cfg) return false;
 
-  if (!player.cultivation) {
+  if (window.__JH_CULTIVATION_SYSTEM__ && typeof window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
+    window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation(player);
+  } else if (!player.cultivation) {
     player.cultivation = {
       attack: 0,
       defense: 0,

@@ -331,11 +331,15 @@ function doJob() {
 
 // ===== 8. 存档 =====
 function saveGameBtn() {
-  localStorage.setItem("jianghu_save_v03", JSON.stringify({
-    saveVersion: 2,
-    player,
-    logs
-  }));
+  if (window.__JH_SAVE_SYSTEM__ && typeof window.__JH_SAVE_SYSTEM__.saveToLocalStorage === "function") {
+    window.__JH_SAVE_SYSTEM__.saveToLocalStorage(player, logs);
+  } else {
+    localStorage.setItem("jianghu_save_v03", JSON.stringify({
+      saveVersion: 3,
+      player,
+      logs
+    }));
+  }
   addLog("sys", "【存档】进度已封存至书笈中。");
   setNotice("success", "存档成功！");
   updateAll();
@@ -343,7 +347,9 @@ function saveGameBtn() {
 }
 
 function loadGameBtn() {
-  const save = localStorage.getItem("jianghu_save_v03");
+  const save = window.__JH_SAVE_SYSTEM__ && typeof window.__JH_SAVE_SYSTEM__.loadFromLocalStorage === "function"
+    ? window.__JH_SAVE_SYSTEM__.loadFromLocalStorage()
+    : localStorage.getItem("jianghu_save_v03");
   if (!save) {
     addLog("error", "未找到存档记录。");
     setNotice("error", "读档失败：没有找到存档。");
@@ -351,8 +357,11 @@ function loadGameBtn() {
     return;
   }
 
-  let data = JSON.parse(save);
-  data = migrateSaveData(data);
+  let data = save;
+  if (typeof save === "string") {
+    data = JSON.parse(save);
+    data = migrateSaveData(data);
+  }
 
   player = data.player || defaultPlayer();
   logs = data.logs || logs;
