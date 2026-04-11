@@ -114,6 +114,19 @@ window.resetGameBtn = resetGameBtn;
 window.showTrain = showTrain;
 window.doCultivationUpgrade = doCultivationUpgrade;
 
+function autoLoadLatestSave() {
+  if (!window.__JH_SAVE_SYSTEM__ || typeof window.__JH_SAVE_SYSTEM__.loadFromLocalStorage !== "function") {
+    return false;
+  }
+
+  const data = window.__JH_SAVE_SYSTEM__.loadFromLocalStorage();
+  if (!data || !data.player) return false;
+
+  player = data.player;
+  logs = Array.isArray(data.logs) ? data.logs : logs;
+  return true;
+}
+
 // ===== 8. 初始化 =====
 window.onload = function () {
   try {
@@ -124,6 +137,7 @@ window.onload = function () {
       currentView = window.__JH_RUNTIME_STATE__.getCurrentView();
     }
 
+    autoLoadLatestSave();
     normalizePlayerAfterLoad();
     normalizeLogs();
     updateAll();
