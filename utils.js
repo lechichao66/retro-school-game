@@ -218,6 +218,10 @@ function addLog(type, text) {
 
   if (logs.length > 100) logs.pop();
 
+  if (window.__JH_RUNTIME_STATE__ && typeof window.__JH_RUNTIME_STATE__.setLogs === "function") {
+    logs = window.__JH_RUNTIME_STATE__.setLogs(logs);
+  }
+
   if (typeof renderHallLog === "function") {
     renderHallLog();
   }
