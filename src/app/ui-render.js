@@ -72,6 +72,7 @@
   function refreshCurrentView() {
     const viewMap = {
       hall: showHall,
+      inn: showInn,
       status: showStatus,
       bag: showBag,
       equip: showEquip,
@@ -187,11 +188,11 @@
         <div class="card">
           <h3>成长与修行</h3>
           <div class="shop-actions">
+            <button class="small-btn" onclick="showInn()">客栈/生活</button>
             <button class="small-btn" onclick="showTrain()">修炼系统</button>
             <button class="small-btn" onclick="showJob()">职业</button>
             <button class="small-btn" onclick="showPharmacy()">药房</button>
             <button class="small-btn" onclick="luck()">运气</button>
-            <button class="small-btn" onclick="rest()">休息</button>
           </div>
         </div>
         <div class="card">
@@ -641,11 +642,19 @@
   }
 
   function showTreasure() {
-    currentView = "treasure";
+    return showInn("treasure");
+  }
+
+  function showInn(section) {
+    currentView = "inn";
+    const activeSection = section === "treasure" ? "treasure" : "life";
     const maps = player.treasureMaps || [];
-    const rows = maps.map((entry, idx) => `<div class='card'><div class='list-line'><b>${entry.name}</b>（目标：${entry.area}）</div><div class='list-line'>状态：${entry.used ? "已使用" : "可使用"}</div><div class='shop-actions'><button class='small-btn' onclick='useTreasureMap(${idx})' ${entry.used ? "disabled" : ""}>使用宝图</button><button class='small-btn' onclick='digTreasure(${idx})' ${entry.used ? "" : "disabled"}>挖宝</button></div></div>`).join("");
-    setMainTitle("宝图入口");
-    setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'>闭环：获得宝图 → 读取宝图（扣体力）→ 触发事件 → 结算奖励 → 入账与日志。</div><div class='shop-actions'><button class='small-btn' onclick='grantTreasureMap()'>获得一张样板宝图</button><button class='small-btn' onclick=\"showLogbook('treasure')\">查看完整宝图日志</button></div></div><div class='card'><h3>宝图最近记录</h3>${renderRecentLogbook("treasure", 4, "暂无宝图记录。")}</div>${rows || "<div class='card'>暂无宝图，可先领取样板。</div>"}`);
+    const treasureRows = maps.map((entry, idx) => `<div class='card'><div class='list-line'><b>${entry.name}</b>（目标：${entry.area}）</div><div class='list-line'>状态：${entry.used ? "已使用" : "可使用"}</div><div class='shop-actions'><button class='small-btn' onclick='useTreasureMap(${idx})' ${entry.used ? "disabled" : ""}>使用宝图</button><button class='small-btn' onclick='digTreasure(${idx})' ${entry.used ? "" : "disabled"}>挖宝</button></div></div>`).join("");
+    const treasureModule = `<div class='card'><h3>宝图模块</h3><div class='list-line'>闭环：获得宝图 → 读取宝图（扣体力）→ 触发事件 → 结算奖励 → 入账与日志。</div><div class='shop-actions'><button class='small-btn' onclick='grantTreasureMap()'>获得一张样板宝图</button><button class='small-btn' onclick=\"showInn('treasure')\">刷新宝图页</button><button class='small-btn' onclick=\"showLogbook('treasure')\">查看完整宝图日志</button></div></div><div class='card'><h3>宝图最近记录</h3>${renderRecentLogbook("treasure", 8, "暂无宝图记录。")}</div>${treasureRows || "<div class='card'>暂无宝图，可先领取样板。</div>"}`;
+    const lifeModule = `<div class='card'><h3>客栈修整</h3><div class='list-line'>在客栈休息可恢复气血、内力、体力与活力。</div><div class='list-line'>当前体力：${player.stamina?.current || 0} / ${player.stamina?.max || 0}，活力：${player.vigor?.current || 0} / ${player.vigor?.max || 0}</div><div class='shop-actions'><button class='small-btn' onclick='rest()'>休息</button><button class='small-btn' onclick=\"showInn('treasure')\">前往宝图模块</button></div></div>`;
+
+    setMainTitle("客栈 / 生活页");
+    setMainContent(`${renderNoticeHtml()}<div class='shop-actions'><button class='action-btn' style='background:${activeSection === "life" ? "#800000" : "#f2e9d8"};color:${activeSection === "life" ? "#fff" : "#222"};' onclick='showInn()'>客栈修整</button><button class='action-btn' style='background:${activeSection === "treasure" ? "#800000" : "#f2e9d8"};color:${activeSection === "treasure" ? "#fff" : "#222"};' onclick=\"showInn('treasure')\">宝图</button></div>${activeSection === "life" ? lifeModule : `${lifeModule}${treasureModule}`}`);
   }
 
   function showDungeon() {
@@ -727,6 +736,7 @@
     showDungeon,
     showCodex,
     showNavHub,
+    showInn,
     showDebugPanel,
     doCultivationUpgrade,
     setSectTab(tab) { g.sectTab = tab; showSect(); },
