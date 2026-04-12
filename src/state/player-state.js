@@ -47,8 +47,7 @@
       skills: ["ironSkin", "quickSlash"],
       martial: {
         title: "",
-        mastery: {},
-        realm: {},
+        levels: { basic_fist: 1 },
         learned: ["basic_fist"],
         activeSkill: "basic_fist"
       },

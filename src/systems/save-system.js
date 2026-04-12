@@ -51,10 +51,15 @@
     }
     if (!playerRef.martial || typeof playerRef.martial !== "object") playerRef.martial = {};
     if (typeof playerRef.martial.title !== "string") playerRef.martial.title = "";
-    if (!playerRef.martial.mastery || typeof playerRef.martial.mastery !== "object") playerRef.martial.mastery = {};
-    if (!playerRef.martial.realm || typeof playerRef.martial.realm !== "object") playerRef.martial.realm = {};
+    if (!playerRef.martial.levels || typeof playerRef.martial.levels !== "object") {
+      const legacy = playerRef.martial.mastery || {};
+      const converted = {};
+      Object.keys(legacy).forEach((id) => { converted[id] = Math.max(1, Math.floor((Number(legacy[id]) || 0) / 12) + 1); });
+      playerRef.martial.levels = converted;
+    }
     if (!Array.isArray(playerRef.martial.learned)) playerRef.martial.learned = ["basic_fist"];
     if (!playerRef.martial.activeSkill) playerRef.martial.activeSkill = "basic_fist";
+    if (!playerRef.martial.levels.basic_fist) playerRef.martial.levels.basic_fist = 1;
     if (!playerRef.stamina || typeof playerRef.stamina !== "object") playerRef.stamina = { current: 100, max: 100 };
     if (!playerRef.vigor || typeof playerRef.vigor !== "object") playerRef.vigor = { current: 100, max: 100 };
     playerRef.stamina.max = Math.max(30, Number(playerRef.stamina.max) || 100);

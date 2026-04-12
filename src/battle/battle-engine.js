@@ -199,14 +199,8 @@
     const drops = typeof rollDrops === "function" ? rollDrops(monsterName) : [];
     drops.forEach((name) => addItem(name, 1));
     addBattleLog("success", `击败 ${monsterName}，获得银两 ${moneyGain}、经验 ${expGain}${drops.length ? `、掉落 ${drops.join("、")}` : ""}`);
-    if (!player.martial) player.martial = { title: "", mastery: {}, realm: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
-    if (!player.martial.mastery) player.martial.mastery = {};
-    const allSkills = [...(global.martialArtsBySect?.[player.sect]?.skills || []), ...(global.martialArtsBySect?.["无门无派"]?.skills || [])];
-    const activeId = player.martial.activeSkill || "basic_fist";
-    const activeSkill = allSkills.find((x) => x.id === activeId);
-    if (activeSkill?.id) {
-      player.martial.mastery[activeSkill.id] = (player.martial.mastery[activeSkill.id] || 0) + (activeSkill.baseMasteryGain || 1);
-    }
+    if (!player.martial) player.martial = { title: "", levels: { basic_fist: 1 }, learned: ["basic_fist"], activeSkill: "basic_fist" };
+    if (!player.martial.levels) player.martial.levels = { basic_fist: 1 };
     if (typeof global.onMonsterDefeated === "function") {
       global.onMonsterDefeated(monsterName, currentBattle.type || "normal");
     }
