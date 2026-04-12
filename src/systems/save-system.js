@@ -38,6 +38,23 @@
     martialRef.activeSkill = martialRef.equipped.wugong || "basic_fist";
   }
 
+  function getDefaultTradeState() {
+    const defaultRouteId = g.__JH_DATA__?.tradeRoutes?.defaultRouteId || "novice_loop";
+    return {
+      selectedRouteId: defaultRouteId
+    };
+  }
+
+  function ensureTradeStateCompatibility(playerRef) {
+    if (!playerRef.trade || typeof playerRef.trade !== "object") playerRef.trade = getDefaultTradeState();
+    const routeCfg = g.__JH_DATA__?.tradeRoutes || {};
+    const routeIds = new Set((Array.isArray(routeCfg.routes) ? routeCfg.routes : []).map((x) => x.id));
+    const defaultRouteId = routeCfg.defaultRouteId || "novice_loop";
+    if (typeof playerRef.trade.selectedRouteId !== "string" || (routeIds.size > 0 && !routeIds.has(playerRef.trade.selectedRouteId))) {
+      playerRef.trade.selectedRouteId = defaultRouteId;
+    }
+  }
+
   function getDefaultCultivation() {
     if (g.__JH_CULTIVATION_SYSTEM__ && typeof g.__JH_CULTIVATION_SYSTEM__.createDefaultCultivation === "function") {
       return g.__JH_CULTIVATION_SYSTEM__.createDefaultCultivation();
@@ -62,6 +79,7 @@
     if (!playerRef.location) playerRef.location = "新手村";
     playerRef.sectContribution = Math.max(0, Number(playerRef.sectContribution) || 0);
     playerRef.sectReputation = Math.max(0, Number(playerRef.sectReputation) || 0);
+    ensureTradeStateCompatibility(playerRef);
 
     if (!playerRef.inventory || typeof playerRef.inventory !== "object") playerRef.inventory = {};
     if (!playerRef.equips || typeof playerRef.equips !== "object") playerRef.equips = {};

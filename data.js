@@ -13,6 +13,7 @@ const marketItems = __DATA.marketItems || [];
 const sectList = __DATA.sectList || [];
 const martialArtsBySect = __DATA.martialArtsBySect || {};
 const jobList = __DATA.jobList || [];
+const tradeRoutes = __DATA.tradeRoutes || { defaultRouteId: "novice_loop", routes: [] };
 const taskTypeEnum = __DATA.taskTypeEnum || {};
 const taskTypeList = __DATA.taskTypeList || [];
 const taskTemplates = __DATA.taskTemplates || [];

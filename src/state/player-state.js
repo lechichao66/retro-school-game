@@ -69,6 +69,9 @@
         sectHangup: [],
         economy: []
       },
+      trade: {
+        selectedRouteId: "novice_loop"
+      },
       hangup: {
         lobby: { active: false, lastSettleAt: 0 },
         sectDuty: { active: false, lastSettleAt: 0 }

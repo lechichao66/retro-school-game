@@ -75,6 +75,7 @@ function craftMedicine(index) { return window.__JH_ECONOMY_BAG__.craftMedicine(i
 function joinSect(index) { return window.__JH_GAME_ACTIONS__.joinSect(index); }
 function chooseJob(index) { return window.__JH_GAME_ACTIONS__.chooseJob(index); }
 function doJob() { return window.__JH_GAME_ACTIONS__.doJob(); }
+function setTradeRoute(routeId) { return window.__JH_GAME_ACTIONS__.setTradeRoute(routeId); }
 function acceptTask(taskId) { return window.__JH_GAME_ACTIONS__.acceptTask(taskId); }
 function claimTask(taskId) { return window.__JH_GAME_ACTIONS__.claimTask(taskId); }
 function abandonTask(taskId) { return window.__JH_GAME_ACTIONS__.abandonTask(taskId); }
@@ -138,6 +139,7 @@ window.craftMedicine = craftMedicine;
 window.joinSect = joinSect;
 window.chooseJob = chooseJob;
 window.doJob = doJob;
+window.setTradeRoute = setTradeRoute;
 window.acceptTask = acceptTask;
 window.claimTask = claimTask;
 window.abandonTask = abandonTask;
