@@ -71,8 +71,10 @@
       sectHangup: "门派挂机",
       economy: "营生"
     };
+    const hallEchoCategories = new Set(["adventure", "hangup", "sectHangup"]);
+    const shouldEchoToHall = hallEchoCategories.has(category) && (category === "adventure" || type === "sys" || type === "error");
     if (typeof appendLogbook === "function") appendLogbook(category, text);
-    addLog(type || "event", `【${labelMap[category] || "日志"}】${text}`);
+    if (shouldEchoToHall) addLog(type || "event", `【${labelMap[category] || "日志"}】${text}`);
   }
 
   function getTaskById(taskId) {
