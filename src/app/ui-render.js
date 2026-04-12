@@ -83,6 +83,7 @@
       treasure: showTreasure,
       dungeon: showDungeon,
       codex: showCodex,
+      navHub: showNavHub,
       debug: showDebugPanel,
       encounter: () => {
         if (typeof currentBattle !== "undefined" && currentBattle && typeof showEncounter === "function") {
@@ -126,14 +127,14 @@
     setMainContent(`
       ${renderNoticeHtml()}
 
-      <div style="background:#f9f9f9; padding:10px; border-left:4px solid #800000; margin-bottom:10px; font-size:0.95em;">
+      <div style="background:#fff7e9; padding:10px; border-left:4px solid #7f4f2a; margin-bottom:10px; font-size:0.95em;">
         <b>当前地界：</b>${mapInfo ? mapInfo.desc : "神秘区域"}<br><b>推荐等级：</b>${mapInfo?.levelRange || "未知"}
       </div>
 
       <div class="shop-actions">
         ${Object.keys(mapData).map(name => `
           <button class="action-btn"
-                  style="background:${name === loc ? "#800000" : "#d4d4d4"}; color:${name === loc ? "#fff" : "#000"};"
+                  style="background:${name === loc ? "#7f4f2a" : "#f2e6d0"}; color:${name === loc ? "#fff" : "#2f2922"};"
                   onclick="changeMap('${name}')">
             ${name}
           </button>
@@ -144,34 +145,72 @@
 
       <div class="shop-actions">
         <button class="action-btn" onclick="fakeChat()">闲聊</button>
-        <button class="action-btn" onclick="bubblePoint()">${lobbyStatus === "进行中" ? "停止泡点挂机" : "开始泡点挂机"}</button>
-        <button class="action-btn" onclick="work()">跑商赚钱</button>
-        <button class="action-btn" style="background:#800000; color:white;" onclick="startAdventure()">
+        <button class="action-btn" onclick="bubblePoint()">${lobbyStatus === "进行中" ? "停止泡点" : "开始泡点"}</button>
+        <button class="action-btn" style="background:#7f4f2a; color:white;" onclick="startAdventure()">
           探索${loc}
         </button>
+        <button class="action-btn" onclick="work()">跑商赚钱</button>
         <button class="action-btn" onclick="showLogbook('hall')">日志总览</button>
-        <button class="action-btn" onclick="showBattleLog('hall')">战斗日志</button>
-        <button class="action-btn" onclick="showChangelog('hall')">更新日志</button>
-        <button class="action-btn" onclick="showTreasure()">宝图</button>
-        <button class="action-btn" onclick="showDungeon()">副本</button>
-        <button class="action-btn" onclick="showCodex()">百科</button>
+        <button class="action-btn" onclick="showNavHub()">江湖司南（更多入口）</button>
       </div>
 
       <div class="card" style="margin:10px 0;" id="hallSummaryCard">
-        <h3>大厅日志摘要</h3>
+        <h3>大厅近况</h3>
         <div class="list-line">泡点挂机：${lobbyStatus} ｜ 门派挂机：${sectStatus}</div>
         <div class="list-line">冒险：${adventureSummary}</div>
         <div class="list-line">副本：${dungeonSummary}</div>
         <div class="list-line">宝图：${treasureSummary}</div>
         <div class="list-line">泡点：${hangupSummary}</div>
         <div class="list-line">门派挂机：${sectHangupSummary}</div>
-        <div class="notice">表现层预留：后续可在大厅接入像素头像/小人动作（练功、巡逻、打斗）动画。</div>
+        <div class="notice">大厅保留常用动作；扩展入口已归并至“江湖司南”。</div>
       </div>
 
       <div id="hallLogBox" class="log-box" style="height:260px; min-height:260px; max-height:260px; overflow-y:auto;"></div>
     `);
 
     renderHallLog();
+  }
+
+  function showNavHub() {
+    currentView = "navHub";
+    setMainTitle("江湖司南");
+    setMainContent(`
+      ${renderNoticeHtml()}
+      <div class="card">
+        <h3>功能分区导览</h3>
+        <div class="list-line">为保持大厅清爽，次级入口统一归并到此页。所有功能仍可达，未删除。</div>
+      </div>
+      <div class="status-grid">
+        <div class="card">
+          <h3>成长与修行</h3>
+          <div class="shop-actions">
+            <button class="small-btn" onclick="showTrain()">修炼系统</button>
+            <button class="small-btn" onclick="showJob()">职业</button>
+            <button class="small-btn" onclick="showPharmacy()">药房</button>
+            <button class="small-btn" onclick="luck()">运气</button>
+            <button class="small-btn" onclick="rest()">休息</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>探索与挑战</h3>
+          <div class="shop-actions">
+            <button class="small-btn" onclick="showTreasure()">宝图</button>
+            <button class="small-btn" onclick="showDungeon()">副本</button>
+            <button class="small-btn" onclick="showRank()">排行</button>
+            <button class="small-btn" onclick="showCodex()">百科</button>
+            <button class="small-btn" onclick="showBattleLog()">战斗日志</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>维护与测试</h3>
+          <div class="shop-actions">
+            <button class="small-btn" onclick="showChangelog()">更新日志</button>
+            <button class="small-btn" onclick="showDebugPanel()">调试面板</button>
+            <button class="small-btn" onclick="showHall()">返回大厅</button>
+          </div>
+        </div>
+      </div>
+    `);
   }
 
   function normalizeMartialArtSkillUi(skill) {
@@ -679,6 +718,7 @@
     showTreasure,
     showDungeon,
     showCodex,
+    showNavHub,
     showDebugPanel,
     doCultivationUpgrade,
     setSectTab(tab) { g.sectTab = tab; showSect(); },

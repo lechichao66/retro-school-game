@@ -44,6 +44,7 @@ function showLogbook(mode) { return window.__JH_UI_RENDER__.showLogbook(mode); }
 function showTreasure() { return window.__JH_UI_RENDER__.showTreasure(); }
 function showDungeon() { return window.__JH_UI_RENDER__.showDungeon(); }
 function showCodex() { return window.__JH_UI_RENDER__.showCodex(); }
+function showNavHub() { return window.__JH_UI_RENDER__.showNavHub(); }
 function showPharmacy() { return window.__JH_UI_RENDER__.showPharmacy(); }
 function showTrain() { return window.__JH_UI_RENDER__.showTrain(); }
 function doCultivationUpgrade(type) { return window.__JH_UI_RENDER__.doCultivationUpgrade(type); }
@@ -111,6 +112,7 @@ window.showLogbook = showLogbook;
 window.showTreasure = showTreasure;
 window.showDungeon = showDungeon;
 window.showCodex = showCodex;
+window.showNavHub = showNavHub;
 window.showPharmacy = showPharmacy;
 
 window.train = train;

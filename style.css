@@ -1,43 +1,45 @@
 body {
   margin: 0;
   font-family: "SimSun", "宋体", "Microsoft YaHei", sans-serif;
-  background: #cfd8e6;
-  color: #222;
+  background: radial-gradient(circle at top, #f6efe2 0%, #e7dfcf 45%, #d6cfbf 100%);
+  color: #2f2922;
   font-size: 14px;
 }
 
 .page {
   width: 1280px;
   margin: 10px auto;
-  background: #e9e9e9;
-  border: 2px solid #4b77be;
+  background: #f5f1e8;
+  border: 2px solid #7d5f3f;
+  box-shadow: 0 10px 24px rgba(55, 36, 16, 0.18);
 }
 
 .top-bar {
-  background: #e8dcc3;
-  border-bottom: 2px solid #4b77be;
+  background: linear-gradient(180deg, #eee1c9 0%, #e1d2b4 100%);
+  border-bottom: 2px solid #7d5f3f;
   padding: 10px;
 }
 
 .logo-area h1 {
   margin: 0;
-  color: #174d9b;
+  color: #5f3416;
   font-size: 36px;
   text-align: center;
+  letter-spacing: 2px;
 }
 
 .logo-area p {
   margin: 8px 0 10px;
   text-align: center;
-  color: #555;
+  color: #66584b;
 }
 
 .player-bar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  background: #d8e6f8;
-  border: 1px solid #5f88c9;
+  background: #f8f3ea;
+  border: 1px solid #ab9073;
   padding: 8px;
 }
 
@@ -48,26 +50,26 @@ body {
 }
 
 .center-panel {
-  border-right: 2px solid #4b77be;
-  background: #f0f0f0;
+  border-right: 2px solid #7d5f3f;
+  background: #f4efe5;
 }
 
 .right-panel {
-  background: #c8daf4;
+  background: #efe7d7;
 }
 
 .panel-title {
-  background: #7ea4d8;
-  color: #fff;
+  background: linear-gradient(90deg, #8f6a46 0%, #7d5b3a 100%);
+  color: #fff8ec;
   font-weight: bold;
   padding: 8px 10px;
-  border-bottom: 1px solid #4b77be;
+  border-bottom: 1px solid #5c422a;
 }
 
 .main-content {
   padding: 12px;
   height: 620px;
-  background: #efefef;
+  background: #f8f4ec;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -85,23 +87,23 @@ body {
 }
 
 .online-name {
-  color: #1446a0;
+  color: #6b3717;
   font-weight: bold;
 }
 
 .online-sect {
-  color: #2f7f1e;
+  color: #4d6d2d;
   margin-left: 4px;
 }
 
 .online-state {
-  color: #b50000;
+  color: #8c2f24;
   float: right;
 }
 
 .bottom-menu {
-  border-top: 2px solid #4b77be;
-  background: #d5def0;
+  border-top: 2px solid #7d5f3f;
+  background: #e9decb;
   padding: 8px;
   display: flex;
   flex-wrap: wrap;
@@ -111,23 +113,24 @@ body {
 .bottom-menu button,
 .action-btn,
 .small-btn {
-  border: 1px solid #355f9f;
-  background: #f2e9d8;
-  color: #222;
+  border: 1px solid #876743;
+  background: #f6eddd;
+  color: #3b2d20;
   padding: 6px 10px;
   cursor: pointer;
   font-size: 13px;
+  border-radius: 3px;
 }
 
 .bottom-menu button:hover,
 .action-btn:hover,
 .small-btn:hover {
-  background: #e8d8b8;
+  background: #ecdcbf;
 }
 
 .log-box {
-  background: #fff;
-  border: 1px solid #b2b2b2;
+  background: #fffdf7;
+  border: 1px solid #c6b292;
   padding: 10px;
   min-height: 470px;
   line-height: 1.8;
@@ -140,16 +143,16 @@ body {
 }
 
 .sys {
-  color: #c40000;
+  color: #8c2f24;
   font-weight: bold;
 }
 
 .event {
-  color: #0d6c0d;
+  color: #3d6a26;
 }
 
 .chat {
-  color: #2b2bb2;
+  color: #4f3f8f;
 }
 
 .table-box table {
@@ -177,8 +180,8 @@ body {
 }
 
 .card {
-  border: 1px solid #7d9dc9;
-  background: #f8fbff;
+  border: 1px solid #b89f80;
+  background: #fff9ef;
   padding: 10px;
 }
 
@@ -188,7 +191,7 @@ body {
 
 .card h3 {
   margin-top: 0;
-  color: #204f90;
+  color: #6b4021;
 }
 
 .list-line {
@@ -196,8 +199,8 @@ body {
 }
 
 .notice {
-  background: #fff8db;
-  border: 1px solid #e0ca78;
+  background: #fff7e7;
+  border: 1px solid #d9be8a;
   padding: 8px;
   margin-bottom: 10px;
 }
