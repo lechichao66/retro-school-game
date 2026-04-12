@@ -17,6 +17,8 @@
       player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
     }
     if (!player.unlockedSecretTechs || typeof player.unlockedSecretTechs !== "object") player.unlockedSecretTechs = {};
+    if (!player.martial || typeof player.martial !== "object") player.martial = { learned: ["basic_fist"], levels: { basic_fist: 1 }, activeSkill: "basic_fist" };
+    if (!player.martial.levels || typeof player.martial.levels !== "object") player.martial.levels = { basic_fist: 1 };
   }
 
   function ensureHangup() {
@@ -90,6 +92,19 @@
     addLog("success", `任务完成【${task.name}】。`);
     setNotice("success", `已提交任务：${task.name}`);
     updateAll();
+    showTask();
+  }
+
+  function abandonTask(taskId) {
+    ensureTaskState();
+    if (!player.activeTasks.includes(taskId)) {
+      setNotice("info", "该任务不在进行中。");
+      showTask();
+      return;
+    }
+    player.activeTasks = player.activeTasks.filter((x) => x !== taskId);
+    addLog("sys", `你放弃了任务【${getTaskById(taskId)?.name || taskId}】。`);
+    setNotice("info", "任务已放弃。");
     showTask();
   }
 
@@ -337,9 +352,8 @@
 
     player.sect = sect.name;
     applySectSkills(sect.name);
-    if (!player.martial || typeof player.martial !== "object") player.martial = { title: "", mastery: {}, realm: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
-    if (!player.martial.mastery) player.martial.mastery = {};
-    if (!player.martial.realm) player.martial.realm = {};
+    if (!player.martial || typeof player.martial !== "object") player.martial = { title: "", levels: { basic_fist: 1 }, learned: ["basic_fist"], activeSkill: "basic_fist" };
+    if (!player.martial.levels) player.martial.levels = { basic_fist: 1 };
     if (!Array.isArray(player.martial.learned)) player.martial.learned = ["basic_fist"];
     if (!player.martial.learned.includes("basic_fist")) player.martial.learned.push("basic_fist");
     updateCombatSkillLoadout();
@@ -454,7 +468,7 @@
   }
 
   function getMartialResearchCost(skill, mode) {
-    const base = mode === "resource" ? 80 : 0;
+    const base = mode === "resource" ? 120 : 0;
     const reqContribution = Number(skill?.learnReq?.contribution || 0);
     const discountLevel = Math.floor((player.sectContribution || 0) / 100);
     const capLevel = Math.floor(reqContribution / 20);
@@ -472,11 +486,11 @@
     if (!skill) return;
     const req = skill.learnReq || {};
     if (player.level < (req.level || 1)) return setNotice("error", "等级不足，无法学习。"), showSect();
-    if ((player.sectContribution || 0) < (req.contribution || 0)) return setNotice("error", "门派贡献不足。"), showSect();
+    if ((player.sectContribution || 0) < (req.contribution || 0)) return setNotice("error", "门派贡献不足（仅用于解锁门槛）。"), showSect();
     if (player.money < (req.money || 0)) return setNotice("error", "银两不足。"), showSect();
-    player.sectContribution -= req.contribution || 0;
     player.money -= req.money || 0;
     if (!player.martial.learned.includes(skill.id)) player.martial.learned.push(skill.id);
+    player.martial.levels[skill.id] = player.martial.levels[skill.id] || 1;
     updateCombatSkillLoadout();
     addLog("success", `你已学会门派武功【${skill.name}】。`);
     setNotice("success", `学习成功：${skill.name}`);
@@ -491,21 +505,25 @@
       showSect();
       return;
     }
-    if (mode === "resource") {
-      const researchCost = getMartialResearchCost(skill, "resource");
-      if (player.money < researchCost || !consumeVigor(12)) {
-        setNotice("error", `银两${researchCost}与活力12不足，无法研习。`);
-        showSect();
-        return;
-      }
-      player.money -= researchCost;
-      player.martial.mastery[skillId] = (player.martial.mastery[skillId] || 0) + 12;
-      addLog("event", `你消耗银两${researchCost}与活力研习【${skill.name}】，熟练度 +12。`);
-    } else {
-      player.martial.mastery[skillId] = (player.martial.mastery[skillId] || 0) + 4;
-      addLog("event", `你在实战中体悟【${skill.name}】，熟练度 +4。`);
+    const currentLevel = player.martial.levels[skillId] || 1;
+    const maxLevel = Math.max(1, (player.level || 1) + 10);
+    if (currentLevel >= maxLevel) {
+      setNotice("info", `已达到当前上限：${maxLevel} 级。`);
+      showSect();
+      return;
     }
-    setNotice("success", `${skill.name} 熟练度提升。`);
+    const moneyCost = getMartialResearchCost(skill, "resource");
+    const expCost = 220 + currentLevel * 70;
+    if (player.money < moneyCost || player.exp < expCost) {
+      setNotice("error", `研习需要银两${moneyCost}与经验${expCost}。`);
+      showSect();
+      return;
+    }
+    player.money -= moneyCost;
+    player.exp -= expCost;
+    player.martial.levels[skillId] = currentLevel + 1;
+    addLog("event", `你研习【${skill.name}】并提升到 ${currentLevel + 1} 级，消耗银两${moneyCost}、经验${expCost}。`);
+    setNotice("success", `${skill.name} 升至 ${currentLevel + 1} 级。`);
     showSect();
   }
 
@@ -564,13 +582,20 @@
       addGameplayLog("treasure", "挖宝时惊动了守宝小怪，你仓促应战后勉强脱身。", "event");
       loseHp(8);
     }
+    const rewardTexts = [];
     (map.rewards || []).forEach((r) => {
       if (r.type === "money") player.money += Number(r.value || 0);
-      if (r.type === "item" && r.name) addItem(r.name, Number(r.value || 1));
+      if (r.type === "money") rewardTexts.push(`银两+${Number(r.value || 0)}`);
+      if (r.type === "item" && r.name) {
+        const c = Number(r.value || 1);
+        addItem(r.name, c);
+        rewardTexts.push(`${r.name} x${c}`);
+      }
     });
     player.treasureMaps.splice(index, 1);
-    setNotice("success", "挖宝成功，已结算掉落。");
-    addGameplayLog("treasure", "宝图探索完成：已获得样板奖励。", "success");
+    const rewardText = rewardTexts.length ? rewardTexts.join("，") : "无";
+    setNotice("success", `挖宝成功：${rewardText}`);
+    addGameplayLog("treasure", `宝图探索完成，结算奖励：${rewardText}。`, "success");
     updateAll();
     showTreasure();
   }
@@ -589,11 +614,22 @@
       showDungeon();
       return;
     }
+    const waves = Array.isArray(cfg.waves) ? cfg.waves : [];
+    const wavePenalty = Math.max(0, waves.length - 1) * 60;
+    if (powerGap < -wavePenalty) {
+      loseHp(25);
+      addGameplayLog("dungeon", `你在副本【${cfg.name}】多波战中败退。`, "error");
+      setNotice("error", "副本挑战失败：多波战强度过高。");
+      updateAll();
+      showDungeon();
+      return;
+    }
     const reward = cfg.reward || {};
     player.money += reward.money || 0;
     gainExp(reward.exp || 0);
     (reward.items || []).forEach((it) => addItem(it.name, it.count || 1));
-    addGameplayLog("dungeon", `你通关副本【${cfg.name}】，获得银两${reward.money || 0}、经验${reward.exp || 0}。`, "success");
+    const waveText = waves.length ? `共${waves.length}波，BOSS：${cfg.boss || "无"}` : "单波";
+    addGameplayLog("dungeon", `你通关副本【${cfg.name}】（${waveText}），获得银两${reward.money || 0}、经验${reward.exp || 0}。`, "success");
     setNotice("success", `副本通关：${cfg.name}`);
     updateAll();
     showDungeon();
@@ -828,6 +864,7 @@
     doJob,
     acceptTask,
     claimTask,
+    abandonTask,
     onMonsterDefeated,
     onPlayerActionProgress,
     updateCombatSkillLoadout,

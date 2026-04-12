@@ -360,9 +360,12 @@ function hasItem(name, count = 1) {
 
 function getItemTypeText(name) {
   if (typeof equipData !== "undefined" && equipData[name]) return "装备";
+  const lower = String(name || "").toLowerCase();
+  if (lower.includes("宝图") || lower.includes("令牌") || lower.includes("凭证")) return "宝图/凭证";
   if (name === "小还丹" || name === "大还丹" || name === "干粮" || name === "清水") return "消耗品";
-  if (name === "生姜" || name === "甘草" || name === "止血草" || name === "熊胆") return "药材";
-  return "材料/杂物";
+  if (name === "山贼令牌" || name === "伤寒论残页") return "任务物品";
+  if (name === "生姜" || name === "甘草" || name === "止血草" || name === "熊胆") return "材料";
+  return "材料";
 }
 
 function getItemDetailText(name) {
@@ -510,8 +513,9 @@ function gainExp(amount) {
     });
   } else {
     player.exp += amount;
-    while (player.exp >= player.level * 100) {
-      player.exp -= player.level * 100;
+    const getNeed = (lv) => window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(lv) || (lv * 100);
+    while (player.exp >= getNeed(player.level)) {
+      player.exp -= getNeed(player.level);
       player.level += 1;
       player.hp = getMaxHp();
       player.mp = getMaxMp();

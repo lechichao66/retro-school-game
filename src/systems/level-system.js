@@ -8,7 +8,12 @@
 
   function getRequiredExpForLevel(level) {
     const safeLevel = Math.max(1, Math.floor(toSafeNumber(level, 1)));
-    return safeLevel * 100;
+    if (safeLevel <= 10) return 240 + safeLevel * 180;
+    if (safeLevel <= 20) return 2100 + (safeLevel - 10) * 900;
+    if (safeLevel <= 30) return 11800 + (safeLevel - 20) * 2600;
+    if (safeLevel <= 40) return 39800 + (safeLevel - 30) * 6800;
+    if (safeLevel <= 50) return 112000 + (safeLevel - 40) * 12800;
+    return 240000 + (safeLevel - 50) * 18000;
   }
 
   function gainExpAndLevelUp(playerRef, amount, hooks = {}) {

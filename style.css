@@ -66,8 +66,9 @@ body {
 
 .main-content {
   padding: 12px;
-  min-height: 540px;
+  height: 620px;
   background: #efefef;
+  overflow: hidden;
 }
 
 .online-list {
@@ -208,4 +209,9 @@ body {
   max-height: 420px;
   overflow-y: auto;
   margin-top: 10px;
+}
+
+.hall-main-log {
+  min-height: 0;
+  height: 260px;
 }

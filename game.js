@@ -75,6 +75,7 @@ function chooseJob(index) { return window.__JH_GAME_ACTIONS__.chooseJob(index); 
 function doJob() { return window.__JH_GAME_ACTIONS__.doJob(); }
 function acceptTask(taskId) { return window.__JH_GAME_ACTIONS__.acceptTask(taskId); }
 function claimTask(taskId) { return window.__JH_GAME_ACTIONS__.claimTask(taskId); }
+function abandonTask(taskId) { return window.__JH_GAME_ACTIONS__.abandonTask(taskId); }
 function learnMartialSkill(skillId) { return window.__JH_GAME_ACTIONS__.learnMartialSkill(skillId); }
 function trainMartialSkill(skillId, mode) { return window.__JH_GAME_ACTIONS__.trainMartialSkill(skillId, mode); }
 function redeemSectReward(type) { return window.__JH_GAME_ACTIONS__.redeemSectReward(type); }
@@ -135,6 +136,7 @@ window.chooseJob = chooseJob;
 window.doJob = doJob;
 window.acceptTask = acceptTask;
 window.claimTask = claimTask;
+window.abandonTask = abandonTask;
 window.learnMartialSkill = learnMartialSkill;
 window.trainMartialSkill = trainMartialSkill;
 window.redeemSectReward = redeemSectReward;
@@ -145,8 +147,11 @@ window.digTreasure = digTreasure;
 window.runDungeon = runDungeon;
 window.showEquipDetail = function showEquipDetail(slot) { return window.__JH_UI_RENDER__.showEquipDetail(slot); };
 window.setShopCategory = function setShopCategory(category) { return window.__JH_UI_RENDER__.setShopCategory(category); };
+window.setBagTab = function setBagTab(tab) { return window.__JH_UI_RENDER__.setBagTab(tab); };
 window.setTaskTab = function setTaskTab(tab) { return window.__JH_UI_RENDER__.setTaskTab(tab); };
 window.setTaskPage = function setTaskPage(step) { return window.__JH_UI_RENDER__.setTaskPage(step); };
+window.selectTaskDetail = function selectTaskDetail(taskId) { return window.__JH_UI_RENDER__.selectTaskDetail(taskId); };
+window.refreshTaskList = function refreshTaskList() { return window.__JH_UI_RENDER__.refreshTaskList(); };
 window.setSectTab = function setSectTab(tab) { return window.__JH_UI_RENDER__.setSectTab(tab); };
 window.onMonsterDefeated = function onMonsterDefeated(name, type) { return window.__JH_GAME_ACTIONS__.onMonsterDefeated(name, type); };
 window.onPlayerActionProgress = function onPlayerActionProgress(action, payload) { return window.__JH_GAME_ACTIONS__.onPlayerActionProgress(action, payload); };
