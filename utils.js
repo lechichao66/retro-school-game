@@ -104,6 +104,38 @@ function clampPlayer() {
 
   player.sectContribution = Math.max(0, safeNumber(player.sectContribution, 0));
   player.sectReputation = Math.max(0, safeNumber(player.sectReputation, 0));
+  ensureLogbookState();
+  ensureHangupState();
+}
+
+function ensureLogbookState() {
+  if (!player || typeof player !== "object") return;
+  if (!player.logbook || typeof player.logbook !== "object") player.logbook = {};
+  ["adventure", "dungeon", "treasure", "hangup", "sectHangup", "economy"].forEach((key) => {
+    if (!Array.isArray(player.logbook[key])) player.logbook[key] = [];
+  });
+}
+
+function ensureHangupState() {
+  if (!player || typeof player !== "object") return;
+  if (!player.hangup || typeof player.hangup !== "object") player.hangup = {};
+  if (!player.hangup.lobby || typeof player.hangup.lobby !== "object") player.hangup.lobby = { active: false, lastSettleAt: 0 };
+  if (!player.hangup.sectDuty || typeof player.hangup.sectDuty !== "object") player.hangup.sectDuty = { active: false, lastSettleAt: 0 };
+}
+
+function appendLogbook(category, text) {
+  ensureLogbookState();
+  const key = category || "adventure";
+  if (!player.logbook[key]) player.logbook[key] = [];
+  player.logbook[key].unshift({ time: getNowTime(), text: text || "" });
+  if (player.logbook[key].length > 80) player.logbook[key].pop();
+}
+
+function getLogbookEntries(category, limit) {
+  ensureLogbookState();
+  const key = category || "adventure";
+  const cap = Math.max(1, Number(limit) || 20);
+  return (player.logbook[key] || []).slice(0, cap);
 }
 
 function recoverStamina(amount) {
@@ -614,6 +646,8 @@ function normalizePlayerAfterLoad() {
     if (!Array.isArray(player.activeTasks)) player.activeTasks = [];
     if (!player.taskProgress || typeof player.taskProgress !== "object") player.taskProgress = {};
     if (!Array.isArray(player.completedTasks)) player.completedTasks = [];
+    if (!player.logbook) player.logbook = {};
+    if (!player.hangup) player.hangup = {};
     if (!player.currentMap) player.currentMap = player.location || "新手村";
     player.level = safeNumber(player.level, 1);
     player.hp = safeNumber(player.hp, getMaxHp());
@@ -624,6 +658,8 @@ function normalizePlayerAfterLoad() {
 
   clampPlayer();
   applyNaturalRecovery();
+  ensureLogbookState();
+  ensureHangupState();
 }
 function migrateSaveData(saveData) {
   if (window.__JH_SAVE_SYSTEM__ && typeof window.__JH_SAVE_SYSTEM__.migrateSaveData === "function") {

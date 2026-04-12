@@ -1,5 +1,9 @@
 (function initGameActions(global) {
   const g = global || window;
+  const HANGUP_SETTLE_MS = 60 * 1000;
+  const LOBBY_DROP_RATE = 0.06;
+  const LOBBY_DROPS = ["止血草", "矿石", "木头", "小鱼"];
+  let hangupTicker = null;
 
   function ensureTaskState() {
     if (!Array.isArray(player.activeTasks)) player.activeTasks = [];
@@ -13,6 +17,26 @@
       player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
     }
     if (!player.unlockedSecretTechs || typeof player.unlockedSecretTechs !== "object") player.unlockedSecretTechs = {};
+  }
+
+  function ensureHangup() {
+    if (typeof ensureHangupState === "function") ensureHangupState();
+    if (!player.hallAvatarState || typeof player.hallAvatarState !== "object") {
+      player.hallAvatarState = { action: "idle", updatedAt: Date.now() };
+    }
+  }
+
+  function addGameplayLog(category, text, type) {
+    const labelMap = {
+      adventure: "冒险",
+      dungeon: "副本",
+      treasure: "宝图",
+      hangup: "挂机",
+      sectHangup: "门派挂机",
+      economy: "营生"
+    };
+    if (typeof appendLogbook === "function") appendLogbook(category, text);
+    addLog(type || "event", `【${labelMap[category] || "日志"}】${text}`);
   }
 
   function getTaskById(taskId) {
@@ -135,9 +159,24 @@
   }
 
   function bubblePoint() {
-    recoverHp(10);
-    addLog("sys", "你在武林广场站了一会儿，感觉神清气爽。气血恢复 +10。");
-    setNotice("success", "泡点成功：气血 +10。");
+    ensureHangup();
+    if (!player.hangup.lobby.active) {
+      if (player.hangup.sectDuty.active) {
+        setNotice("error", "当前正在执行门派值守，请先停止门派挂机。");
+        refreshCurrentView();
+        return;
+      }
+      player.hangup.lobby.active = true;
+      player.hangup.lobby.lastSettleAt = Date.now();
+      player.hallAvatarState = { action: "train", updatedAt: Date.now() };
+      addGameplayLog("hangup", "你在大厅进入泡点挂机状态。每分钟自动结算经验与银两。", "sys");
+      setNotice("success", "已开始泡点挂机。再次点击可停止。");
+    } else {
+      player.hangup.lobby.active = false;
+      player.hallAvatarState = { action: "idle", updatedAt: Date.now() };
+      addGameplayLog("hangup", "你停止了泡点挂机，转为手动行动。", "sys");
+      setNotice("info", "已停止泡点挂机。");
+    }
     updateAll();
     refreshCurrentView();
   }
@@ -148,20 +187,20 @@
 
   function work() {
     if (!consumeStamina(18)) {
-      addLog("error", "你体力不足，已经干不动活了。");
-      setNotice("error", "体力不足（需18点），无法打工。");
+      addLog("error", "你体力不足，当前无法继续跑商。");
+      setNotice("error", "体力不足（需18点），无法跑商。");
       refreshCurrentView();
       return;
     }
 
-    let income = 15;
+    let income = 20;
     if (player.sect === "丐帮") income += 5;
 
     player.money += income;
-    gainExp(10);
+    gainExp(6);
 
-    addLog("event", `你辛苦劳作了一阵，消耗体力18点，银两 +${income}，经验 +10。`);
-    setNotice("success", `打工成功：银两 +${income}，经验 +10。`);
+    addGameplayLog("economy", `你完成一趟短线跑商，消耗体力18点，获得银两 +${income}，经验 +6。`, "event");
+    setNotice("success", `跑商成功：银两 +${income}，经验 +6。`);
     onPlayerActionProgress("work");
     updateAll();
     refreshCurrentView();
@@ -243,6 +282,7 @@
       showHall();
       return;
     }
+    addGameplayLog("adventure", `你在${player.location}开始了一次探索，遭遇目标：${monster.name}。`, "sys");
 
     g.currentBattle = {
       name: monster.name,
@@ -495,7 +535,7 @@
     const template = (g.__JH_DATA__?.treasureMapTemplates || [])[0];
     if (!template) return;
     player.treasureMaps.push({ ...template, used: false });
-    addLog("sys", `你获得了宝图【${template.name}】。`);
+    addGameplayLog("treasure", `你获得了宝图【${template.name}】。`, "sys");
     setNotice("success", "获得样板宝图 x1。");
     if (typeof showTreasure === "function") showTreasure();
   }
@@ -510,7 +550,7 @@
       return;
     }
     map.used = true;
-    addLog("event", `你研读了【${map.name}】，锁定了挖宝坐标。体力 -${map.staminaCost || 10}。`);
+    addGameplayLog("treasure", `你研读了【${map.name}】，锁定了挖宝坐标。体力 -${map.staminaCost || 10}。`, "event");
     setNotice("success", "宝图已启用，可执行挖宝。");
     showTreasure();
   }
@@ -521,7 +561,7 @@
     if (!map?.used) return;
     const monsterRoll = Math.random() < (map.encounterRate || 0.3);
     if (monsterRoll) {
-      addLog("event", "挖宝时惊动了守宝小怪，你仓促应战后勉强脱身。");
+      addGameplayLog("treasure", "挖宝时惊动了守宝小怪，你仓促应战后勉强脱身。", "event");
       loseHp(8);
     }
     (map.rewards || []).forEach((r) => {
@@ -530,7 +570,7 @@
     });
     player.treasureMaps.splice(index, 1);
     setNotice("success", "挖宝成功，已结算掉落。");
-    addLog("success", "宝图探索完成：已获得样板奖励。");
+    addGameplayLog("treasure", "宝图探索完成：已获得样板奖励。", "success");
     updateAll();
     showTreasure();
   }
@@ -543,7 +583,7 @@
     const powerGap = getPowerValue() - (cfg.recommendedPower || 0);
     if (powerGap < -200) {
       loseHp(20);
-      addLog("error", `你挑战副本【${cfg.name}】失败，体力消耗且气血受损。`);
+      addGameplayLog("dungeon", `你挑战副本【${cfg.name}】失败，体力消耗且气血受损。`, "error");
       setNotice("error", "副本挑战失败：当前战力偏低。");
       updateAll();
       showDungeon();
@@ -553,7 +593,7 @@
     player.money += reward.money || 0;
     gainExp(reward.exp || 0);
     (reward.items || []).forEach((it) => addItem(it.name, it.count || 1));
-    addLog("success", `你通关副本【${cfg.name}】，获得银两${reward.money || 0}、经验${reward.exp || 0}。`);
+    addGameplayLog("dungeon", `你通关副本【${cfg.name}】，获得银两${reward.money || 0}、经验${reward.exp || 0}。`, "success");
     setNotice("success", `副本通关：${cfg.name}`);
     updateAll();
     showDungeon();
@@ -618,6 +658,7 @@
     if (!ok) return;
 
     player = defaultPlayer();
+    stopAllHangup();
     logs = [
       { type: "sys", text: "【系统】你已重置江湖人生。", time: getNowTime() }
     ];
@@ -633,6 +674,91 @@
     setNotice("success", "重开成功：新的江湖旅程开始了。");
     updateAll();
     showHall();
+  }
+
+  function toggleSectDutyHangup() {
+    ensureHangup();
+    if (player.sect === "无门无派") {
+      setNotice("error", "无门无派无法执行门派值守，请先加入门派。");
+      showSect();
+      return;
+    }
+    if (!player.hangup.sectDuty.active) {
+      if (player.hangup.lobby.active) {
+        setNotice("error", "当前正在泡点挂机，请先停止大厅泡点。");
+        showSect();
+        return;
+      }
+      player.hangup.sectDuty.active = true;
+      player.hangup.sectDuty.lastSettleAt = Date.now();
+      player.hallAvatarState = { action: "patrol", updatedAt: Date.now() };
+      addGameplayLog("sectHangup", `你开始执行${player.sect}门派值守，每分钟自动获得门派贡献。`, "sys");
+      setNotice("success", "已开始门派值守挂机。再次点击可停止。");
+    } else {
+      player.hangup.sectDuty.active = false;
+      player.hallAvatarState = { action: "idle", updatedAt: Date.now() };
+      addGameplayLog("sectHangup", "你结束了本轮门派值守挂机。", "sys");
+      setNotice("info", "已停止门派值守挂机。");
+    }
+    updateAll();
+    showSect();
+  }
+
+  function settleLobbyHangupRound() {
+    const expGain = 6;
+    const moneyGain = 8;
+    gainExp(expGain);
+    player.money += moneyGain;
+    let dropText = "无";
+    if (Math.random() < LOBBY_DROP_RATE) {
+      const drop = randomPick(LOBBY_DROPS) || "止血草";
+      addItem(drop, 1);
+      dropText = `${drop} x1`;
+    }
+    addGameplayLog("hangup", `泡点结算：经验 +${expGain}、银两 +${moneyGain}，掉落：${dropText}。`, "event");
+  }
+
+  function settleSectDutyRound() {
+    const contributionGain = 10;
+    player.sectContribution = (player.sectContribution || 0) + contributionGain;
+    addGameplayLog("sectHangup", `门派值守结算：门派贡献 +${contributionGain}。`, "event");
+  }
+
+  function processHangupSettlement(forceSettle) {
+    ensureHangup();
+    const now = Date.now();
+    const loopSettle = (stateKey, settleFn) => {
+      const state = player.hangup[stateKey];
+      if (!state?.active) return;
+      const last = Number(state.lastSettleAt) || now;
+      let rounds = 0;
+      if (forceSettle) {
+        rounds = Math.max(1, Math.floor((now - last) / HANGUP_SETTLE_MS));
+      } else if (now - last >= HANGUP_SETTLE_MS) {
+        rounds = Math.floor((now - last) / HANGUP_SETTLE_MS);
+      }
+      if (rounds <= 0) return;
+      for (let i = 0; i < rounds; i += 1) settleFn();
+      state.lastSettleAt = last + rounds * HANGUP_SETTLE_MS;
+    };
+
+    loopSettle("lobby", settleLobbyHangupRound);
+    loopSettle("sectDuty", settleSectDutyRound);
+    if (forceSettle) updateAll();
+  }
+
+  function startHangupTicker() {
+    if (hangupTicker) clearInterval(hangupTicker);
+    hangupTicker = setInterval(() => {
+      processHangupSettlement(false);
+    }, 5000);
+  }
+
+  function stopAllHangup() {
+    ensureHangup();
+    player.hangup.lobby.active = false;
+    player.hangup.sectDuty.active = false;
+    player.hallAvatarState = { action: "idle", updatedAt: Date.now() };
   }
 
   function debugSetLevel(level) {
@@ -708,6 +834,9 @@
     saveGameBtn,
     loadGameBtn,
     resetGameBtn,
+    processHangupSettlement,
+    toggleSectDutyHangup,
+    stopAllHangup,
     debugSetLevel,
     debugAddMoney,
     debugCultivateAll,
@@ -724,4 +853,6 @@
   };
   g.getMartialResearchCost = getMartialResearchCost;
   ensureGrowthState();
+  ensureHangup();
+  startHangupTicker();
 })(window);

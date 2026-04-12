@@ -3,6 +3,7 @@
 
   function updateTopBar() {
     applyNaturalRecovery();
+    if (window.__JH_GAME_ACTIONS__?.processHangupSettlement) window.__JH_GAME_ACTIONS__.processHangupSettlement(false);
     clampPlayer();
 
     const panel = getPlayerPanelData();
@@ -77,6 +78,7 @@
       task: showTask,
       martial: showMartial,
       battleLog: showBattleLog,
+      logbook: showLogbook,
       changelog: showChangelog,
       treasure: showTreasure,
       dungeon: showDungeon,
@@ -111,6 +113,15 @@
     const loc = player.location || "新手村";
     const mapInfo = mapData[loc];
 
+    const hangupState = player.hangup || {};
+    const lobbyStatus = hangupState?.lobby?.active ? "进行中" : "未开启";
+    const sectStatus = hangupState?.sectDuty?.active ? "进行中" : "未开启";
+    const adventureSummary = (getLogbookEntries("adventure", 1)[0]?.text) || "暂无";
+    const dungeonSummary = (getLogbookEntries("dungeon", 1)[0]?.text) || "暂无";
+    const treasureSummary = (getLogbookEntries("treasure", 1)[0]?.text) || "暂无";
+    const hangupSummary = (getLogbookEntries("hangup", 1)[0]?.text) || "暂无";
+    const sectHangupSummary = (getLogbookEntries("sectHangup", 1)[0]?.text) || "暂无";
+
     setMainTitle(`江湖大厅 - ${loc}`);
     setMainContent(`
       ${renderNoticeHtml()}
@@ -133,15 +144,28 @@
 
       <div class="shop-actions">
         <button class="action-btn" onclick="fakeChat()">闲聊</button>
-        <button class="action-btn" onclick="bubblePoint()">泡点</button>
+        <button class="action-btn" onclick="bubblePoint()">${lobbyStatus === "进行中" ? "停止泡点挂机" : "开始泡点挂机"}</button>
+        <button class="action-btn" onclick="work()">跑商赚钱</button>
         <button class="action-btn" style="background:#800000; color:white;" onclick="startAdventure()">
           探索${loc}
         </button>
+        <button class="action-btn" onclick="showLogbook('hall')">日志总览</button>
         <button class="action-btn" onclick="showBattleLog('hall')">战斗日志</button>
         <button class="action-btn" onclick="showChangelog('hall')">更新日志</button>
         <button class="action-btn" onclick="showTreasure()">宝图</button>
         <button class="action-btn" onclick="showDungeon()">副本</button>
         <button class="action-btn" onclick="showCodex()">百科</button>
+      </div>
+
+      <div class="card" style="margin:10px 0;">
+        <h3>大厅日志摘要</h3>
+        <div class="list-line">泡点挂机：${lobbyStatus} ｜ 门派挂机：${sectStatus}</div>
+        <div class="list-line">冒险：${adventureSummary}</div>
+        <div class="list-line">副本：${dungeonSummary}</div>
+        <div class="list-line">宝图：${treasureSummary}</div>
+        <div class="list-line">泡点：${hangupSummary}</div>
+        <div class="list-line">门派挂机：${sectHangupSummary}</div>
+        <div class="notice">表现层预留：后续可在大厅接入像素头像/小人动作（练功、巡逻、打斗）动画。</div>
       </div>
 
       <div id="hallLogBox" class="log-box" style="height:460px; min-height:460px; max-height:460px; overflow-y:auto;"></div>
@@ -338,7 +362,8 @@
       const reducedMoney = getMartialResearchCost(skill, "resource");
       return `<div class='list-line'><b>${skill.name}</b>【${skill.grade || "不入流"}】</div><div class='list-line'>学习条件：等级${skill.learnReq?.level || 1}、贡献${skill.learnReq?.contribution || 0}、银两${skill.learnReq?.money || 0}</div><div class='list-line'>熟练度：${mastery}　研习银两：${reducedMoney}</div><div class='list-line'>效果：${skill.effect}</div><div class='shop-actions'>${learned ? "<button class='small-btn' disabled>已学会</button>" : `<button class='small-btn' onclick="learnMartialSkill('${skill.id}')">学习</button>`}<button class='small-btn' onclick="trainMartialSkill('${skill.id}','battle')">战斗研习</button><button class='small-btn' onclick="trainMartialSkill('${skill.id}','resource')">银两研习</button></div><hr>`;
     }).join("")}</div>`).join("");
-    const sectTaskInfo = `<div class='card'><h3>师门成长闭环（首版）</h3><div class='list-line'>门派贡献：${player.sectContribution || 0}　门派声望：${player.sectReputation || 0}</div><div class='list-line'>闭环：接取师门任务 → 完成获得贡献 → 贡献用于武功学习/称号/丹药材料/秘技解锁。</div><div class='shop-actions'><button class='small-btn' onclick="setTaskTab('sect');showTask()">前往接取师门任务</button><button class='small-btn' onclick="redeemSectReward('title')">兑换门派称号（200贡献）</button><button class='small-btn' onclick="redeemSectReward('pill')">兑换特殊丹药（120贡献）</button><button class='small-btn' onclick="redeemSectReward('material')">兑换特殊材料（80贡献）</button><button class='small-btn' onclick="redeemSectReward('passive')">解锁门派秘技（300贡献）</button></div></div>`;
+    const sectDutyActive = player.hangup?.sectDuty?.active;
+    const sectTaskInfo = `<div class='card'><h3>师门成长闭环（首版）</h3><div class='list-line'>门派贡献：${player.sectContribution || 0}　门派声望：${player.sectReputation || 0}</div><div class='list-line'>来源：师门任务 / 门派值守挂机（每分钟 +10） / 后续活动。</div><div class='list-line'>用途：门派武功学习、门派称号兑换、丹药材料、秘技解锁。</div><div class='shop-actions'><button class='small-btn' onclick="setTaskTab('sect');showTask()">前往接取师门任务</button><button class='small-btn' onclick="toggleSectDutyHangup()">${sectDutyActive ? "停止门派值守挂机" : "开始门派值守挂机"}</button><button class='small-btn' onclick="showLogbook('sectHangup')">查看门派挂机日志</button><button class='small-btn' onclick="redeemSectReward('title')">兑换门派称号（200贡献）</button><button class='small-btn' onclick="redeemSectReward('pill')">兑换特殊丹药（120贡献）</button><button class='small-btn' onclick="redeemSectReward('material')">兑换特殊材料（80贡献）</button><button class='small-btn' onclick="redeemSectReward('passive')">解锁门派秘技（300贡献）</button></div></div>`;
     const exchangePanel = `<div class='card'><h3>师门兑换</h3><div class='list-line'>本页为首版入口，后续将扩展更多门派专属商品。</div>${sectTaskInfo}</div>`;
     const titlePanel = `<div class='card'><h3>门派称号</h3><div class='list-line'>当前称号：${player.title}</div><div class='list-line'>完成师门任务并积累贡献可提升门派身份。</div>${sectTaskInfo}</div>`;
     const contentMap = {
@@ -358,9 +383,9 @@
     ].map(([key, label]) => `<button class='action-btn' style='background:${tab === key ? "#800000" : "#f2e9d8"};color:${tab === key ? "#fff" : "#222"};' onclick="setSectTab('${key}')">${label}</button>`).join("")}</div>${contentMap[tab] || contentMap.overview}`);
   }
   function showRank() { currentView = "rank"; const rankData = [{ name: player.name, value: getPowerValue(), tag: "当前角色" }, { name: "秋风", value: 860, tag: "唐门" }, { name: "断水", value: 780, tag: "武当" }, { name: "孤城", value: 730, tag: "幽月宫" }, { name: "听雪", value: 650, tag: "世外桃源" }].sort((a, b) => b.value - a.value); const rows = rankData.map((item, i) => `<tr><td>${i + 1}</td><td>${item.name}</td><td>${item.value}</td><td>${item.tag}</td></tr>`).join(""); setMainTitle("江湖排行"); setMainContent(`${renderNoticeHtml()}<div class="table-box"><table><thead><tr><th>排名</th><th>玩家</th><th>综合值</th><th>备注</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
-  function showJob() { currentView = "job"; const rows = jobList.map((item, i) => `<tr><td>${item.name}</td><td>${item.intro}</td><td>${item.gain}</td><td><button class="small-btn" onclick="chooseJob(${i})">入职</button></td></tr>`).join(""); setMainTitle("江湖职业"); setMainContent(`${renderNoticeHtml()}<div class="notice">当前职业：<b>${player.job}</b></div><div class="table-box"><table><thead><tr><th>职业</th><th>说明</th><th>产出</th><th>选择</th></tr></thead><tbody>${rows}</tbody></table></div><div class="shop-actions"><button class="action-btn" onclick="doJob()">执行职业动作</button></div>`); }
+  function showJob() { currentView = "job"; const rows = jobList.map((item, i) => `<tr><td>${item.name}</td><td>${item.intro}</td><td>${item.gain}</td><td><button class="small-btn" onclick="chooseJob(${i})">入职</button></td></tr>`).join(""); setMainTitle("江湖职业"); setMainContent(`${renderNoticeHtml()}<div class="notice">当前职业：<b>${player.job}</b></div><div class="table-box"><table><thead><tr><th>职业</th><th>说明</th><th>产出</th><th>选择</th></tr></thead><tbody>${rows}</tbody></table></div><div class="shop-actions"><button class="action-btn" onclick="doJob()">执行职业动作</button><button class="action-btn" onclick="work()">跑商赚钱（体力换银两）</button></div>`); }
   function showPharmacy() { currentView = "pharmacy"; const recipeHtml = recipes.map((r, i) => { const canCraft = canCraftRecipe(r); const materialText = Object.keys(r.materials).map(name => { const own = player.inventory[name] || 0; return `${name}(${own}/${r.materials[name]})`; }).join("，"); return `<div class="card"><h3>${r.name}</h3><div class="list-line">${r.effect}</div><div class="list-line">材料：${materialText}</div><button class="small-btn" ${canCraft ? "" : "disabled"} onclick="craftMedicine(${i})">炼制</button></div>`; }).join(""); setMainTitle("神农药房"); setMainContent(`${renderNoticeHtml()}<div class="status-grid">${recipeHtml || "<div class='card'>暂无药方</div>"}</div>`); }
-  function showTrain() { currentView = "train"; const rows = Object.keys(CULTIVATION_CONFIG).map(key => { const cfg = CULTIVATION_CONFIG[key]; const level = getCultivationLevel(key); const bonus = getCultivationBonus(key); const pct = Math.floor((getCultivationGrowthPercent(key) || 0) * 1000) / 10; const cost = level >= cfg.maxLevel ? "已满级" : `${getCultivationCost(key)} 两`; return `<tr><td>${cfg.name}</td><td>${level} / ${cfg.maxLevel}</td><td>${cfg.effectText}${bonus}${pct > 0 ? `（额外 ${pct}%）` : ""}</td><td>${cost}</td><td><button class="small-btn" ${level >= cfg.maxLevel ? "disabled" : ""} onclick="doCultivationUpgrade('${key}')">提升</button></td></tr>`; }).join(""); const summary = getCultivationSummary(); setMainTitle("修炼系统"); setMainContent(`${renderNoticeHtml()}<div class="status-grid"><div class="card"><h3>当前修炼总览</h3><div class="list-line">攻击修炼加成：+${summary.attack}</div><div class="list-line">防御修炼加成：+${summary.defense}</div><div class="list-line">气血修炼加成：+${summary.hp}</div><div class="list-line">内力修炼加成：+${summary.mp}</div><div class="list-line">抗性修炼加成：+${summary.resist}</div><div class="list-line">修炼额外战力：${Math.floor((summary.attack + summary.defense + summary.hp / 2 + summary.mp / 2) * 3)}</div></div></div><div class="table-box"><table><thead><tr><th>修炼项目</th><th>等级</th><th>当前效果</th><th>升级花费</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
+  function showTrain() { currentView = "train"; const unlockLevel = window.CULTIVATION_UNLOCK_LEVEL || 20; const unlocked = (player.level || 1) >= unlockLevel; const rows = Object.keys(CULTIVATION_CONFIG).map(key => { const cfg = CULTIVATION_CONFIG[key]; const level = getCultivationLevel(key); const bonus = getCultivationBonus(key); const pct = Math.floor((getCultivationGrowthPercent(key) || 0) * 1000) / 10; const cost = !unlocked ? `未解锁（${unlockLevel}级）` : level >= cfg.maxLevel ? "已满级" : `${getCultivationCost(key)} 两`; return `<tr><td>${cfg.name}</td><td>${level} / ${cfg.maxLevel}</td><td>${cfg.effectText}${bonus}${pct > 0 ? `（额外 ${pct}%）` : ""}</td><td>${cost}</td><td><button class="small-btn" ${!unlocked || level >= cfg.maxLevel ? "disabled" : ""} onclick="doCultivationUpgrade('${key}')">提升</button></td></tr>`; }).join(""); const summary = getCultivationSummary(); const lockText = unlocked ? `已解锁：你当前等级 ${player.level}。` : `未解锁：修炼系统需 ${unlockLevel} 级开启，你当前为 ${player.level} 级。`; setMainTitle("修炼系统"); setMainContent(`${renderNoticeHtml()}<div class="status-grid"><div class="card"><h3>当前修炼总览</h3><div class="list-line">${lockText}</div><div class="list-line">攻击修炼加成：+${summary.attack}</div><div class="list-line">防御修炼加成：+${summary.defense}</div><div class="list-line">气血修炼加成：+${summary.hp}</div><div class="list-line">内力修炼加成：+${summary.mp}</div><div class="list-line">抗性修炼加成：+${summary.resist}</div><div class="list-line">修炼额外战力：${Math.floor((summary.attack + summary.defense + summary.hp / 2 + summary.mp / 2) * 3)}</div></div></div><div class="table-box"><table><thead><tr><th>修炼项目</th><th>等级</th><th>当前效果</th><th>升级花费</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
 
 
   function showTask() {
@@ -410,6 +435,36 @@
     setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'>展示最近战斗、掉落、技能与状态触发记录。</div></div><div class='log-box' style='height:520px;overflow-y:auto;'>${rows || "暂无战斗日志。"}</div>`);
   }
 
+  function showLogbook(mode) {
+    if (mode === "hall") {
+      const packs = [
+        ["副本", getLogbookEntries("dungeon", 1)[0]?.text || "暂无"],
+        ["宝图", getLogbookEntries("treasure", 1)[0]?.text || "暂无"],
+        ["泡点挂机", getLogbookEntries("hangup", 1)[0]?.text || "暂无"],
+        ["门派挂机", getLogbookEntries("sectHangup", 1)[0]?.text || "暂无"]
+      ];
+      setNotice("info", "已在大厅展开日志摘要。");
+      setMainContent(`${document.getElementById("mainContent").innerHTML}<div class='card' style='margin-top:8px;'><h3>大厅内嵌 · 日志摘要</h3>${packs.map((x) => `<div class='list-line'>${x[0]}：${x[1]}</div>`).join("")}<div class='shop-actions'><button class='small-btn' onclick=\"showLogbook()\">进入完整日志系统</button></div></div>`);
+      return;
+    }
+    currentView = "logbook";
+    const tabs = [
+      ["adventure", "冒险日志"],
+      ["dungeon", "副本日志"],
+      ["treasure", "宝图日志"],
+      ["hangup", "泡点挂机日志"],
+      ["sectHangup", "门派挂机日志"],
+      ["economy", "营生日志"]
+    ];
+    if (typeof mode === "string" && tabs.some(([key]) => key === mode)) {
+      g.logbookTab = mode;
+    }
+    const tab = g.logbookTab || "adventure";
+    const rows = getLogbookEntries(tab, 80).map((item) => `<div class='log-line event'><span style='color:#777;'>[${item.time}]</span> ${item.text}</div>`).join("");
+    setMainTitle("大日志系统");
+    setMainContent(`${renderNoticeHtml()}<div class='shop-actions'>${tabs.map(([key, label]) => `<button class='action-btn' style='background:${tab === key ? "#800000" : "#f2e9d8"};color:${tab === key ? "#fff" : "#222"};' onclick="showLogbook('${key}')">${label}</button>`).join("")}</div><div class='card'><div class='list-line'>大厅仅展示摘要；完整记录统一在此按分类查看。</div></div><div class='log-box' style='height:500px;overflow-y:auto;'>${rows || "该分类暂无记录。"}</div>`);
+  }
+
   function showChangelog(mode) {
     if (mode === "hall") {
       const info = g.__JH_DATA__?.versionLog || {};
@@ -448,7 +503,8 @@
     const dungeons = g.__JH_DATA__?.dungeonTemplates || [];
     const rows = dungeons.map((d) => `<div class='card'><h3>${d.name}</h3><div class='list-line'>建议战力：${d.recommendedPower}（高于普通探索）</div><div class='list-line'>要求：等级${d.minLevel}+，体力消耗${d.staminaCost}</div><div class='list-line'>奖励：银两${d.reward.money}，经验${d.reward.exp}</div><div class='shop-actions'><button class='small-btn' onclick="runDungeon('${d.id}')">进入副本</button></div></div>`).join("");
     setMainTitle("副本入口（首版）");
-    setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'>副本定位：门槛高于普通探索，奖励更好，先做小样板。</div></div><div class='status-grid'>${rows}</div>`);
+    const latest = getLogbookEntries("dungeon", 1)[0];
+    setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'>副本定位：门槛高于普通探索，奖励更好，先做小样板。</div><div class='list-line'>最近一次副本：${latest ? `${latest.time} ${latest.text}` : "暂无记录"}</div><div class='shop-actions'><button class='small-btn' onclick="showLogbook('dungeon')">查看完整副本日志</button></div></div><div class='status-grid'>${rows}</div>`);
   }
 
   function showCodex() {
@@ -515,6 +571,7 @@
     showTask,
     showMartial,
     showBattleLog,
+    showLogbook,
     showChangelog,
     showTreasure,
     showDungeon,
