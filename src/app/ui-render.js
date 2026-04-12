@@ -174,10 +174,65 @@
     renderHallLog();
   }
 
+  function normalizeMartialArtSkillUi(skill) {
+    if (window.__JH_MARTIAL_ARTS__?.normalizeMartialArtSkill) {
+      return window.__JH_MARTIAL_ARTS__.normalizeMartialArtSkill(skill);
+    }
+    const source = skill && typeof skill === "object" ? skill : {};
+    return {
+      ...source,
+      id: source.id || "",
+      name: source.name || "未知武学",
+      category: source.category || source.categoryCn || "wugong",
+      categoryCn: source.categoryCn || source.category || "武功",
+      quality: source.quality || source.grade || "low",
+      grade: source.grade || source.quality || "不入流"
+    };
+  }
+
+  function getMartialStatusData() {
+    const martial = player.martial || {};
+    const learnedIds = Array.isArray(martial.learned) ? martial.learned : [];
+    const equipped = martial.equipped && typeof martial.equipped === "object"
+      ? martial.equipped
+      : { gongfa: null, wugong: martial.activeSkill || "basic_fist", shenfa: null, lianti: null, miji: null };
+
+    const allSkills = Object.values(martialArtsBySect || {})
+      .flatMap((sect) => Array.isArray(sect.skills) ? sect.skills : [])
+      .map((x) => normalizeMartialArtSkillUi(x));
+
+    const learnedSkills = learnedIds.map((id) => allSkills.find((x) => x.id === id) || {
+      id,
+      name: id,
+      category: "wugong",
+      categoryCn: "武功",
+      quality: "low",
+      grade: "不入流"
+    });
+
+    return { learnedSkills, equipped, levels: martial.levels || {} };
+  }
+
+  function getEquippedMartialDisplayName(skillId) {
+    if (!skillId) return "未装备";
+    const allSkills = Object.values(martialArtsBySect || {})
+      .flatMap((sect) => Array.isArray(sect.skills) ? sect.skills : []);
+    const found = allSkills.find((x) => x.id === skillId);
+    return found?.name || skillId;
+  }
+
   function showStatus() {
     currentView = "status";
     const bonus = getEquipBonus();
     const adv = window.__JH_SELECTORS__?.getDerivedCombatStatsValue?.() || {};
+    const martialData = getMartialStatusData();
+    const slotLabels = {
+      gongfa: "功法",
+      wugong: "武功",
+      shenfa: "身法",
+      lianti: "炼体",
+      miji: "秘技"
+    };
 
     setMainTitle("人物状态");
     setMainContent(`
@@ -210,6 +265,19 @@
           <div class="list-line">弱点伤害：${adv.weakHit || 0}%</div>
           <div class="list-line">伤害减免：${adv.damageReduce || 0}</div>
           <div class="list-line">综合战力：${getPowerValue()}</div>
+        </div>
+
+        <div class="card">
+          <h3>武功区域</h3>
+          <div class="list-line"><b>已学武功</b></div>
+          ${martialData.learnedSkills.length
+            ? martialData.learnedSkills.map((x) => `<div class="list-line">${x.name}（${x.categoryCn}/${x.grade}） Lv.${martialData.levels?.[x.id] || 1}</div>`).join("")
+            : "<div class='list-line'>暂无已学武功</div>"}
+          <hr style="border:0; border-top:1px dashed #ccc; margin:10px 0;">
+          <div class="list-line"><b>当前装备槽位</b></div>
+          ${Object.keys(slotLabels)
+            .map((key) => `<div class="list-line">${slotLabels[key]}：${getEquippedMartialDisplayName(martialData.equipped?.[key])}</div>`)
+            .join("")}
         </div>
       </div>
     `);
