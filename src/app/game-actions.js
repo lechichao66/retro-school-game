@@ -46,6 +46,29 @@
     if (!Array.isArray(player.completedTasks)) player.completedTasks = [];
   }
 
+  function getTradeRouteConfig() {
+    const cfg = tradeRoutes && typeof tradeRoutes === "object" ? tradeRoutes : {};
+    const routes = Array.isArray(cfg.routes) ? cfg.routes : [];
+    const defaultRouteId = cfg.defaultRouteId || routes[0]?.id || "novice_loop";
+    return { routes, defaultRouteId };
+  }
+
+  function ensureTradeState() {
+    if (!player.trade || typeof player.trade !== "object") player.trade = {};
+    const cfg = getTradeRouteConfig();
+    const routeIds = new Set(cfg.routes.map((x) => x.id));
+    if (typeof player.trade.selectedRouteId !== "string" || !routeIds.has(player.trade.selectedRouteId)) {
+      player.trade.selectedRouteId = cfg.defaultRouteId;
+    }
+    return player.trade.selectedRouteId;
+  }
+
+  function getSelectedTradeRoute() {
+    const selectedId = ensureTradeState();
+    const cfg = getTradeRouteConfig();
+    return cfg.routes.find((x) => x.id === selectedId) || cfg.routes[0] || null;
+  }
+
   function ensureGrowthState() {
     if (!Array.isArray(player.treasureMaps)) player.treasureMaps = [];
     if (!player.assistantProfessions || typeof player.assistantProfessions !== "object") {
@@ -259,22 +282,65 @@
   }
 
   function work() {
-    if (!consumeStamina(18)) {
-      addLog("error", "你体力不足，当前无法继续跑商。");
-      setNotice("error", "体力不足（需18点），无法跑商。");
+    const route = getSelectedTradeRoute();
+    if (!route) {
+      addLog("error", "当前没有可用跑商路线。请先在职业页选择路线。");
+      setNotice("error", "暂无可用跑商路线。", "event");
       refreshCurrentView();
       return;
     }
 
-    let income = 20;
+    const needStamina = 18;
+    if (!consumeStamina(needStamina)) {
+      addLog("error", "你体力不足，当前无法继续跑商。");
+      setNotice("error", `体力不足（需${needStamina}点），无法跑商。`);
+      refreshCurrentView();
+      return;
+    }
+
+    const routeLevel = Number(route.requiredLevel) || 1;
+    const mapLevel = Math.max(1, Number(mapData?.[player.location]?.minLevel) || 1);
+    const baseSilver = Math.max(1, Number(route.baseSilver) || 20);
+    const levelBonus = Math.max(0, player.level - routeLevel) * 2;
+    const mapBonus = Math.floor(baseSilver * mapLevel * (Number(route.mapBonusRate) || 0.03));
+    const variancePct = Math.max(0, Number(route.variancePct) || 0.12);
+    const randomFactor = (Math.random() * 2 - 1) * variancePct;
+    const rawSilver = baseSilver + levelBonus + mapBonus;
+    let income = Math.max(1, Math.floor(rawSilver * (1 + randomFactor)));
     if (player.sect === "丐帮") income += 5;
 
-    player.money += income;
-    gainExp(6);
+    const baseExp = Math.max(1, Number(route.baseExp) || 6);
+    const expGain = baseExp + Math.max(0, Math.floor((mapLevel - routeLevel) / 4));
 
-    addGameplayLog("economy", `你完成一趟短线跑商，消耗体力18点，获得银两 +${income}，经验 +6。`, "event");
-    setNotice("success", `跑商成功：银两 +${income}，经验 +6。`);
-    onPlayerActionProgress("work");
+    player.money += income;
+    gainExp(expGain);
+
+    const settleDetail = {
+      routeId: route.id,
+      routeName: route.name,
+      staminaCost: needStamina,
+      level: player.level,
+      routeLevel,
+      map: player.location,
+      mapLevel,
+      formula: {
+        baseSilver,
+        levelBonus,
+        mapBonus,
+        variancePct,
+        randomFactor: Number(randomFactor.toFixed(4)),
+        sectBonus: player.sect === "丐帮" ? 5 : 0,
+        income
+      },
+      rewards: {
+        silver: income,
+        exp: expGain
+      }
+    };
+
+    addGameplayLog("economy", `[workSettlement] ${JSON.stringify(settleDetail)}`, "event");
+    setNotice("success", `跑商成功：${route.name}，银两 +${income}，经验 +${expGain}。`);
+    onPlayerActionProgress("work", { routeId: route.id, income, expGain });
     updateAll();
     refreshCurrentView();
   }
@@ -428,6 +494,26 @@
     addLog("sys", `你选择了职业【${job.name}】。`);
     setNotice("success", `入职成功：${job.name}`);
     updateAll();
+    showJob();
+  }
+
+  function setTradeRoute(routeId) {
+    const cfg = getTradeRouteConfig();
+    const target = cfg.routes.find((x) => x.id === routeId);
+    if (!target) {
+      setNotice("error", "路线不存在，无法切换。");
+      showJob();
+      return;
+    }
+    if (player.level < (target.requiredLevel || 1)) {
+      setNotice("error", `等级不足：该路线需 ${target.requiredLevel || 1} 级。`);
+      showJob();
+      return;
+    }
+    ensureTradeState();
+    player.trade.selectedRouteId = target.id;
+    addGameplayLog("economy", `你将跑商路线切换为【${target.name}】。`, "sys");
+    setNotice("success", `已切换路线：${target.name}`);
     showJob();
   }
 
@@ -914,6 +1000,7 @@
     bubblePoint,
     train,
     work,
+    setTradeRoute,
     luck,
     rest,
     changeMap,
