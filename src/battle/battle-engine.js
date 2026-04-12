@@ -271,7 +271,10 @@
         player.skills || [],
         "你",
         currentBattle.name,
-        playerAtk
+        playerAtk,
+        {
+          skillSourceMap: player.combatSkillSources || {}
+        }
       );
       playerAtk = playerSkillResult.damage;
 
@@ -318,7 +321,13 @@
         currentBattle.skills || [],
         currentBattle.name,
         "你",
-        monsterAtk
+        monsterAtk,
+        {
+          skillSourceMap: (currentBattle.skills || []).reduce((acc, skillId) => {
+            acc[skillId] = "怪物技能";
+            return acc;
+          }, {})
+        }
       );
       monsterAtk = monsterSkillResult.damage;
 
