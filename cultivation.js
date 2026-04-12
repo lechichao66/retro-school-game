@@ -5,8 +5,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 30,
     growthCost: 1.18,
-    effectPerLevel: 6,
-    percentPerLevel: 0.012,
+    effectPerLevel: 14,
+    percentPerLevel: 0.025,
     effectText: "攻击 +"
   },
   defense: {
@@ -15,8 +15,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 30,
     growthCost: 1.18,
-    effectPerLevel: 6,
-    percentPerLevel: 0.012,
+    effectPerLevel: 14,
+    percentPerLevel: 0.025,
     effectText: "防御 +"
   },
   hp: {
@@ -25,8 +25,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 40,
     growthCost: 1.2,
-    effectPerLevel: 30,
-    percentPerLevel: 0.015,
+    effectPerLevel: 70,
+    percentPerLevel: 0.03,
     effectText: "气血上限 +"
   },
   mp: {
@@ -35,8 +35,8 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 40,
     growthCost: 1.2,
-    effectPerLevel: 22,
-    percentPerLevel: 0.015,
+    effectPerLevel: 50,
+    percentPerLevel: 0.03,
     effectText: "内力上限 +"
   },
   resist: {
@@ -45,11 +45,13 @@ const CULTIVATION_CONFIG = {
     maxLevel: 30,
     baseCost: 50,
     growthCost: 1.25,
-    effectPerLevel: 1,
+    effectPerLevel: 2,
     percentPerLevel: 0,
     effectText: "抗性 +"
   }
 };
+const CULTIVATION_UNLOCK_LEVEL = 20;
+window.CULTIVATION_UNLOCK_LEVEL = CULTIVATION_UNLOCK_LEVEL;
 
 function getCultivationLevel(type) {
   if (window.__JH_CULTIVATION_SYSTEM__ && typeof window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
@@ -97,6 +99,11 @@ function getCultivationSummary() {
 function upgradeCultivation(type) {
   const cfg = CULTIVATION_CONFIG[type];
   if (!cfg) return false;
+  if ((player.level || 1) < CULTIVATION_UNLOCK_LEVEL) {
+    setNotice("error", `修炼系统需角色达到 ${CULTIVATION_UNLOCK_LEVEL} 级后开启。`);
+    addLog("error", `你尝试修炼失败：需达到 ${CULTIVATION_UNLOCK_LEVEL} 级。`);
+    return false;
+  }
 
   if (window.__JH_CULTIVATION_SYSTEM__ && typeof window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
     window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation(player);

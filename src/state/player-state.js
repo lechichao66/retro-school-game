@@ -55,6 +55,22 @@
       activeTasks: [],
       taskProgress: {},
       completedTasks: [],
+      logbook: {
+        adventure: [],
+        dungeon: [],
+        treasure: [],
+        hangup: [],
+        sectHangup: [],
+        economy: []
+      },
+      hangup: {
+        lobby: { active: false, lastSettleAt: 0 },
+        sectDuty: { active: false, lastSettleAt: 0 }
+      },
+      hallAvatarState: {
+        action: "idle",
+        updatedAt: Date.now()
+      },
       states: [],
       shield: 0,
       currentMap: "新手村"

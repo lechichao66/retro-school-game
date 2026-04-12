@@ -39,7 +39,8 @@ function showRank() { return window.__JH_UI_RENDER__.showRank(); }
 function showJob() { return window.__JH_UI_RENDER__.showJob(); }
 function showTask() { return window.__JH_UI_RENDER__.showTask(); }
 function showMartial() { return window.__JH_UI_RENDER__.showMartial(); }
-function showBattleLog() { return window.__JH_UI_RENDER__.showBattleLog(); }
+function showBattleLog(mode) { return window.__JH_UI_RENDER__.showBattleLog(mode); }
+function showLogbook(mode) { return window.__JH_UI_RENDER__.showLogbook(mode); }
 function showTreasure() { return window.__JH_UI_RENDER__.showTreasure(); }
 function showDungeon() { return window.__JH_UI_RENDER__.showDungeon(); }
 function showCodex() { return window.__JH_UI_RENDER__.showCodex(); }
@@ -77,6 +78,7 @@ function claimTask(taskId) { return window.__JH_GAME_ACTIONS__.claimTask(taskId)
 function learnMartialSkill(skillId) { return window.__JH_GAME_ACTIONS__.learnMartialSkill(skillId); }
 function trainMartialSkill(skillId, mode) { return window.__JH_GAME_ACTIONS__.trainMartialSkill(skillId, mode); }
 function redeemSectReward(type) { return window.__JH_GAME_ACTIONS__.redeemSectReward(type); }
+function toggleSectDutyHangup() { return window.__JH_GAME_ACTIONS__.toggleSectDutyHangup(); }
 function grantTreasureMap() { return window.__JH_GAME_ACTIONS__.grantTreasureMap(); }
 function useTreasureMap(idx) { return window.__JH_GAME_ACTIONS__.useTreasureMap(idx); }
 function digTreasure(idx) { return window.__JH_GAME_ACTIONS__.digTreasure(idx); }
@@ -104,6 +106,7 @@ window.showJob = showJob;
 window.showTask = showTask;
 window.showMartial = showMartial;
 window.showBattleLog = showBattleLog;
+window.showLogbook = showLogbook;
 window.showTreasure = showTreasure;
 window.showDungeon = showDungeon;
 window.showCodex = showCodex;
@@ -135,6 +138,7 @@ window.claimTask = claimTask;
 window.learnMartialSkill = learnMartialSkill;
 window.trainMartialSkill = trainMartialSkill;
 window.redeemSectReward = redeemSectReward;
+window.toggleSectDutyHangup = toggleSectDutyHangup;
 window.grantTreasureMap = grantTreasureMap;
 window.useTreasureMap = useTreasureMap;
 window.digTreasure = digTreasure;
@@ -154,7 +158,7 @@ window.saveGameBtn = saveGameBtn;
 window.loadGameBtn = loadGameBtn;
 window.resetGameBtn = resetGameBtn;
 window.showTrain = showTrain;
-window.showChangelog = function showChangelog() { return window.__JH_UI_RENDER__.showChangelog(); };
+window.showChangelog = function showChangelog(mode) { return window.__JH_UI_RENDER__.showChangelog(mode); };
 window.showDebugPanel = function showDebugPanel() { return window.__JH_UI_RENDER__.showDebugPanel(); };
 window.doCultivationUpgrade = doCultivationUpgrade;
 window.debugSetLevel = debugSetLevel;

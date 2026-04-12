@@ -66,6 +66,24 @@
     if (!Array.isArray(playerRef.activeTasks)) playerRef.activeTasks = [];
     if (!playerRef.taskProgress || typeof playerRef.taskProgress !== "object") playerRef.taskProgress = {};
     if (!Array.isArray(playerRef.completedTasks)) playerRef.completedTasks = [];
+    if (!playerRef.logbook || typeof playerRef.logbook !== "object") playerRef.logbook = {};
+    ["adventure", "dungeon", "treasure", "hangup", "sectHangup", "economy"].forEach((key) => {
+      if (!Array.isArray(playerRef.logbook[key])) playerRef.logbook[key] = [];
+    });
+
+    if (!playerRef.hangup || typeof playerRef.hangup !== "object") playerRef.hangup = {};
+    if (!playerRef.hangup.lobby || typeof playerRef.hangup.lobby !== "object") playerRef.hangup.lobby = { active: false, lastSettleAt: 0 };
+    if (!playerRef.hangup.sectDuty || typeof playerRef.hangup.sectDuty !== "object") playerRef.hangup.sectDuty = { active: false, lastSettleAt: 0 };
+    playerRef.hangup.lobby.active = Boolean(playerRef.hangup.lobby.active);
+    playerRef.hangup.sectDuty.active = Boolean(playerRef.hangup.sectDuty.active);
+    playerRef.hangup.lobby.lastSettleAt = Number(playerRef.hangup.lobby.lastSettleAt) || 0;
+    playerRef.hangup.sectDuty.lastSettleAt = Number(playerRef.hangup.sectDuty.lastSettleAt) || 0;
+
+    if (!playerRef.hallAvatarState || typeof playerRef.hallAvatarState !== "object") {
+      playerRef.hallAvatarState = { action: "idle", updatedAt: Date.now() };
+    }
+    if (typeof playerRef.hallAvatarState.action !== "string") playerRef.hallAvatarState.action = "idle";
+    if (typeof playerRef.hallAvatarState.updatedAt !== "number") playerRef.hallAvatarState.updatedAt = Date.now();
 
     if (!Array.isArray(playerRef.states)) playerRef.states = [];
     if (typeof playerRef.shield === "undefined") playerRef.shield = 0;
