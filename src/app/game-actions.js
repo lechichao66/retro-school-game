@@ -531,7 +531,8 @@
     player.martial.levels[skill.id] = player.martial.levels[skill.id] || 1;
     updateCombatSkillLoadout();
     addLog("success", `你已学会门派武功【${skill.name}】。`);
-    setNotice("success", `学习成功：${skill.name}`);
+    updateAll();
+    setNotice("success", `学习成功：${skill.name}（消耗银两${req.money || 0}）`);
     showSect();
   }
 
@@ -561,7 +562,8 @@
     player.exp -= expCost;
     player.martial.levels[skillId] = currentLevel + 1;
     addLog("event", `你研习【${skill.name}】并提升到 ${currentLevel + 1} 级，消耗银两${moneyCost}、经验${expCost}。`);
-    setNotice("success", `${skill.name} 升至 ${currentLevel + 1} 级。`);
+    updateAll();
+    setNotice("success", `${skill.name} 升至 ${currentLevel + 1} 级（消耗银两${moneyCost}、经验${expCost}）。`);
     showSect();
   }
 
