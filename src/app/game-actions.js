@@ -5,6 +5,41 @@
   const LOBBY_DROPS = ["止血草", "矿石", "木头", "小鱼"];
   let hangupTicker = null;
 
+  function ensureMartialState() {
+    if (!player.martial || typeof player.martial !== "object") {
+      player.martial = { learned: ["basic_fist"], levels: { basic_fist: 1 }, activeSkill: "basic_fist" };
+    }
+    if (!Array.isArray(player.martial.learned)) player.martial.learned = ["basic_fist"];
+    if (!player.martial.levels || typeof player.martial.levels !== "object") player.martial.levels = { basic_fist: 1 };
+    if (!player.martial.levels.basic_fist) player.martial.levels.basic_fist = 1;
+    if (!player.martial.equipped || typeof player.martial.equipped !== "object") {
+      player.martial.equipped = { gongfa: null, wugong: "basic_fist", shenfa: null, lianti: null, miji: null };
+    }
+
+    const defaults = { gongfa: null, wugong: "basic_fist", shenfa: null, lianti: null, miji: null };
+    Object.keys(defaults).forEach((key) => {
+      const val = player.martial.equipped[key];
+      if (typeof val !== "string" || !val) player.martial.equipped[key] = defaults[key];
+    });
+
+    if ((!player.martial.equipped.wugong || player.martial.equipped.wugong === "basic_fist") && player.martial.activeSkill) {
+      player.martial.equipped.wugong = player.martial.activeSkill;
+    }
+    player.martial.activeSkill = player.martial.equipped.wugong || "basic_fist";
+  }
+
+  function normalizeMartialArtSkillSafe(skill) {
+    if (g.__JH_MARTIAL_ARTS__?.normalizeMartialArtSkill) {
+      return g.__JH_MARTIAL_ARTS__.normalizeMartialArtSkill(skill);
+    }
+    const source = skill && typeof skill === "object" ? skill : {};
+    return {
+      ...source,
+      id: source.id || "",
+      category: source.category || source.categoryCn || source.type || "wugong"
+    };
+  }
+
   function ensureTaskState() {
     if (!Array.isArray(player.activeTasks)) player.activeTasks = [];
     if (!player.taskProgress || typeof player.taskProgress !== "object") player.taskProgress = {};
@@ -17,8 +52,7 @@
       player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
     }
     if (!player.unlockedSecretTechs || typeof player.unlockedSecretTechs !== "object") player.unlockedSecretTechs = {};
-    if (!player.martial || typeof player.martial !== "object") player.martial = { learned: ["basic_fist"], levels: { basic_fist: 1 }, activeSkill: "basic_fist" };
-    if (!player.martial.levels || typeof player.martial.levels !== "object") player.martial.levels = { basic_fist: 1 };
+    ensureMartialState();
   }
 
   function ensureHangup() {
@@ -143,22 +177,26 @@
   }
 
   function updateCombatSkillLoadout() {
+    ensureMartialState();
     if (player.level < 10) {
       player.skills = ["ironSkin", "quickSlash"];
-      if (!player.martial) player.martial = { mastery: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
+      player.martial.equipped.wugong = "basic_fist";
       player.martial.activeSkill = "basic_fist";
       return;
     }
     applySectSkills(player.sect);
     const sectConfig = martialArtsBySect[player.sect] || { skills: [] };
     const learned = player.martial?.learned || [];
-    const sectSkill = (sectConfig.skills || []).find((x) => learned.includes(x.id));
-    player.martial.activeSkill = sectSkill?.id || "basic_fist";
+    const sectSkill = (sectConfig.skills || []).map((x) => normalizeMartialArtSkillSafe(x)).find((x) => learned.includes(x.id) && x.category === "wugong");
+    player.martial.equipped.wugong = sectSkill?.id || player.martial.equipped.wugong || "basic_fist";
+    player.martial.activeSkill = player.martial.equipped.wugong || "basic_fist";
   }
 
   function getSectSkillById(skillId) {
     const sectConfig = martialArtsBySect[player.sect] || martialArtsBySect["无门无派"] || { skills: [] };
-    return (sectConfig.skills || []).find((x) => x.id === skillId) || null;
+    const found = (sectConfig.skills || []).find((x) => x.id === skillId);
+    if (!found) return null;
+    return normalizeMartialArtSkillSafe(found);
   }
 
   function fakeChat() {

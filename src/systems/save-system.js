@@ -8,6 +8,36 @@
     return ["ironSkin", "quickSlash"];
   }
 
+
+  function createDefaultMartialEquipped() {
+    return {
+      gongfa: null,
+      wugong: "basic_fist",
+      shenfa: null,
+      lianti: null,
+      miji: null
+    };
+  }
+
+  function ensureMartialEquippedCompatibility(martialRef) {
+    if (!martialRef || typeof martialRef !== "object") return;
+    const base = createDefaultMartialEquipped();
+    if (!martialRef.equipped || typeof martialRef.equipped !== "object") {
+      martialRef.equipped = { ...base };
+    }
+
+    Object.keys(base).forEach((slot) => {
+      const val = martialRef.equipped[slot];
+      if (typeof val !== "string" || !val) martialRef.equipped[slot] = base[slot];
+    });
+
+    const legacyActiveSkill = martialRef.activeSkill;
+    if ((!martialRef.equipped.wugong || martialRef.equipped.wugong === "basic_fist") && typeof legacyActiveSkill === "string" && legacyActiveSkill) {
+      martialRef.equipped.wugong = legacyActiveSkill;
+    }
+    martialRef.activeSkill = martialRef.equipped.wugong || "basic_fist";
+  }
+
   function getDefaultCultivation() {
     if (g.__JH_CULTIVATION_SYSTEM__ && typeof g.__JH_CULTIVATION_SYSTEM__.createDefaultCultivation === "function") {
       return g.__JH_CULTIVATION_SYSTEM__.createDefaultCultivation();
@@ -60,6 +90,7 @@
     if (!Array.isArray(playerRef.martial.learned)) playerRef.martial.learned = ["basic_fist"];
     if (!playerRef.martial.activeSkill) playerRef.martial.activeSkill = "basic_fist";
     if (!playerRef.martial.levels.basic_fist) playerRef.martial.levels.basic_fist = 1;
+    ensureMartialEquippedCompatibility(playerRef.martial);
     if (!playerRef.stamina || typeof playerRef.stamina !== "object") playerRef.stamina = { current: 100, max: 100 };
     if (!playerRef.vigor || typeof playerRef.vigor !== "object") playerRef.vigor = { current: 100, max: 100 };
     playerRef.stamina.max = Math.max(30, Number(playerRef.stamina.max) || 100);

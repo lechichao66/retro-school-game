@@ -49,7 +49,14 @@
         title: "",
         levels: { basic_fist: 1 },
         learned: ["basic_fist"],
-        activeSkill: "basic_fist"
+        activeSkill: "basic_fist",
+        equipped: {
+          gongfa: null,
+          wugong: "basic_fist",
+          shenfa: null,
+          lianti: null,
+          miji: null
+        }
       },
       activeTasks: [],
       taskProgress: {},
