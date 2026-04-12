@@ -170,26 +170,44 @@
     const sect = (sectList || []).find((x) => x.name === sectName);
     const baseSkills = ["ironSkin", "quickSlash"];
     if (player.level < 10) {
-      player.skills = baseSkills;
+      return baseSkills;
+    }
+    return [...new Set([...(sect?.starterSkills || []), ...baseSkills])];
+  }
+
+  function applyWugongBattleMapping(baseSkillIds) {
+    const mapper = g.__JH_MARTIAL_BATTLE_MAPPER__;
+    const normalizedBaseSkillIds = [...new Set((Array.isArray(baseSkillIds) ? baseSkillIds : []).filter(Boolean))];
+
+    if (!mapper?.mapEquippedWugongToBattleSkills) {
+      player.skills = normalizedBaseSkillIds;
+      player.combatSkillSources = normalizedBaseSkillIds.reduce((acc, skillId) => {
+        acc[skillId] = "starterSkills/基础技能";
+        return acc;
+      }, {});
       return;
     }
-    player.skills = [...new Set([...(sect?.starterSkills || []), ...baseSkills])];
+
+    const mapped = mapper.mapEquippedWugongToBattleSkills(player, normalizedBaseSkillIds, martialArtsBySect);
+    player.skills = mapped.skillIds;
+    player.combatSkillSources = mapped.skillSourceMap;
   }
 
   function updateCombatSkillLoadout() {
     ensureMartialState();
     if (player.level < 10) {
-      player.skills = ["ironSkin", "quickSlash"];
       player.martial.equipped.wugong = "basic_fist";
       player.martial.activeSkill = "basic_fist";
+      applyWugongBattleMapping(["ironSkin", "quickSlash"]);
       return;
     }
-    applySectSkills(player.sect);
+    const starterSkillIds = applySectSkills(player.sect);
     const sectConfig = martialArtsBySect[player.sect] || { skills: [] };
     const learned = player.martial?.learned || [];
     const sectSkill = (sectConfig.skills || []).map((x) => normalizeMartialArtSkillSafe(x)).find((x) => learned.includes(x.id) && x.category === "wugong");
     player.martial.equipped.wugong = sectSkill?.id || player.martial.equipped.wugong || "basic_fist";
     player.martial.activeSkill = player.martial.equipped.wugong || "basic_fist";
+    applyWugongBattleMapping(starterSkillIds);
   }
 
   function getSectSkillById(skillId) {
@@ -389,7 +407,6 @@
     }
 
     player.sect = sect.name;
-    applySectSkills(sect.name);
     if (!player.martial || typeof player.martial !== "object") player.martial = { title: "", levels: { basic_fist: 1 }, learned: ["basic_fist"], activeSkill: "basic_fist" };
     if (!player.martial.levels) player.martial.levels = { basic_fist: 1 };
     if (!Array.isArray(player.martial.learned)) player.martial.learned = ["basic_fist"];

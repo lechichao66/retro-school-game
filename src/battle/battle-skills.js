@@ -86,13 +86,18 @@
     }
   };
 
-  function triggerSkills(attacker, defender, skillIds, attackerName, defenderName, baseDamage) {
+  function triggerSkills(attacker, defender, skillIds, attackerName, defenderName, baseDamage, options) {
     if (!skillIds || !Array.isArray(skillIds) || skillIds.length === 0) {
       return {
         damage: baseDamage,
         skipped: false
       };
     }
+
+    const runtimeOptions = options && typeof options === "object" ? options : {};
+    const skillSourceMap = runtimeOptions.skillSourceMap && typeof runtimeOptions.skillSourceMap === "object"
+      ? runtimeOptions.skillSourceMap
+      : {};
 
     const effects = global.__JH_BATTLE_EFFECTS__;
     let damage = baseDamage;
@@ -102,7 +107,8 @@
       if (!skill) continue;
 
       if (Math.random() < (skill.triggerChance || 0)) {
-        addLog("event", `【技能】${attackerName}施展了【${skill.name}】！${skill.log || ""}`);
+        const sourceLabel = skillSourceMap[skillId] ? `（来源：${skillSourceMap[skillId]}）` : "";
+        addLog("event", `【技能】${attackerName}施展了【${skill.name}】${sourceLabel}！${skill.log || ""}`);
 
         if (skill.damageMultiplier) {
           damage = Math.floor(damage * skill.damageMultiplier);
