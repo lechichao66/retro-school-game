@@ -190,6 +190,17 @@
     };
   }
 
+  function getMartialCategoryLabel(categoryKey) {
+    const map = {
+      gongfa: "功法",
+      wugong: "武功",
+      shenfa: "身法",
+      lianti: "炼体",
+      miji: "秘技"
+    };
+    return map[categoryKey] || categoryKey || "武功";
+  }
+
   function getMartialStatusData() {
     const martial = player.martial || {};
     const learnedIds = Array.isArray(martial.learned) ? martial.learned : [];
@@ -237,7 +248,7 @@
     setMainTitle("人物状态");
     setMainContent(`
       ${renderNoticeHtml()}
-      <div class="status-grid">
+      <div class="status-grid status-grid-status">
         <div class="card">
           <h3>基础信息</h3>
           <div class="list-line">姓名：${player.name}</div>
@@ -271,7 +282,7 @@
           <h3>武功区域</h3>
           <div class="list-line"><b>已学武功</b></div>
           ${martialData.learnedSkills.length
-            ? martialData.learnedSkills.map((x) => `<div class="list-line">${x.name}（${x.categoryCn}/${x.grade}） Lv.${martialData.levels?.[x.id] || 1}</div>`).join("")
+            ? martialData.learnedSkills.map((x) => `<div class="list-line">${x.name}（${getMartialCategoryLabel(x.category)}/${x.grade}） Lv.${martialData.levels?.[x.id] || 1}</div>`).join("")
             : "<div class='list-line'>暂无已学武功</div>"}
           <hr style="border:0; border-top:1px dashed #ccc; margin:10px 0;">
           <div class="list-line"><b>当前装备槽位</b></div>
@@ -439,12 +450,12 @@
     const sectMartial = martialArtsBySect[player.sect] || martialArtsBySect["无门无派"] || { skills: [] };
     const rows = sectList.map((item, i) => `<tr><td>${item.name}</td><td>${item.req}</td><td>${item.intro}<br><small style='color:#666;'>秘技：${item.passiveName || "暂无"}（${item.passiveDesc || "待开放"}）</small></td><td><button class="small-btn" onclick="joinSect(${i})">加入</button></td></tr>`).join("");
     const grouped = (sectMartial.skills || []).reduce((acc, skill) => {
-      const key = skill.category || "武功";
+      const key = skill.category || "wugong";
       if (!acc[key]) acc[key] = [];
       acc[key].push(skill);
       return acc;
     }, {});
-    const martialRows = Object.keys(grouped).map((cat) => `<div class='card'><h3>${cat}</h3>${grouped[cat].map((skill) => {
+    const martialRows = Object.keys(grouped).map((cat) => `<div class='card'><h3>${getMartialCategoryLabel(cat)}</h3>${grouped[cat].map((skill) => {
       const skillLevel = player.martial?.levels?.[skill.id] || 0;
       const learned = (player.martial?.learned || []).includes(skill.id);
       const reducedMoney = getMartialResearchCost(skill, "resource");

@@ -68,7 +68,8 @@ body {
   padding: 12px;
   height: 620px;
   background: #efefef;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .online-list {
@@ -179,6 +180,10 @@ body {
   border: 1px solid #7d9dc9;
   background: #f8fbff;
   padding: 10px;
+}
+
+.status-grid-status > .card:last-child {
+  grid-column: 1 / -1;
 }
 
 .card h3 {
