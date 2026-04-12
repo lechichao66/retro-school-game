@@ -42,6 +42,7 @@ function showMartial() { return window.__JH_UI_RENDER__.showMartial(); }
 function showBattleLog(mode) { return window.__JH_UI_RENDER__.showBattleLog(mode); }
 function showLogbook(mode) { return window.__JH_UI_RENDER__.showLogbook(mode); }
 function showTreasure() { return window.__JH_UI_RENDER__.showTreasure(); }
+function showInn(section) { return window.__JH_UI_RENDER__.showInn(section); }
 function showDungeon() { return window.__JH_UI_RENDER__.showDungeon(); }
 function showCodex() { return window.__JH_UI_RENDER__.showCodex(); }
 function showNavHub() { return window.__JH_UI_RENDER__.showNavHub(); }
@@ -110,6 +111,7 @@ window.showMartial = showMartial;
 window.showBattleLog = showBattleLog;
 window.showLogbook = showLogbook;
 window.showTreasure = showTreasure;
+window.showInn = showInn;
 window.showDungeon = showDungeon;
 window.showCodex = showCodex;
 window.showNavHub = showNavHub;
