@@ -9,13 +9,13 @@
 
   function getRequiredExpForLevel(level) {
     const safeLevel = Math.max(1, Math.floor(toSafeNumber(level, 1)));
-    if (safeLevel <= 20) return 420 + (safeLevel - 1) * 210;
-    if (safeLevel <= 40) return 4800 + (safeLevel - 21) * 850;
-    if (safeLevel <= 70) return 22000 + (safeLevel - 41) * 2200;
-    if (safeLevel <= 100) return 88000 + (safeLevel - 71) * 4600;
-    if (safeLevel <= 130) return 226000 + (safeLevel - 101) * 7800;
-    if (safeLevel <= 150) return 460000 + (safeLevel - 131) * 12000;
-    return 700000 + (safeLevel - 151) * 16000;
+    if (safeLevel <= 20) return 6500 + (safeLevel - 1) * 3000;
+    if (safeLevel <= 40) return 76000 + (safeLevel - 21) * 16000;
+    if (safeLevel <= 70) return 420000 + (safeLevel - 41) * 28000;
+    if (safeLevel <= 100) return 1260000 + (safeLevel - 71) * 52000;
+    if (safeLevel <= 130) return 2820000 + (safeLevel - 101) * 82000;
+    if (safeLevel <= 150) return 5280000 + (safeLevel - 131) * 130000;
+    return 7880000 + (safeLevel - 151) * 180000;
   }
 
   function getAutoLevelCap() {

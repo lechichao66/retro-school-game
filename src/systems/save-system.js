@@ -87,11 +87,16 @@
     const legacyExp = Math.max(0, Number(playerRef.exp) || 0);
     const hasTotalExp = Number.isFinite(Number(playerRef.totalExp));
     const hasExpReserve = Number.isFinite(Number(playerRef.expReserve));
+    const safeLevel = Math.max(1, Math.floor(Number(playerRef.level) || 1));
+    const estimatedLegacyTotal = estimateLegacyTotalExp(safeLevel, legacyExp);
 
     if (!hasTotalExp) {
-      playerRef.totalExp = estimateLegacyTotalExp(playerRef.level, legacyExp);
+      playerRef.totalExp = estimatedLegacyTotal;
     } else {
       playerRef.totalExp = Math.max(0, Number(playerRef.totalExp) || 0);
+      if (playerRef.totalExp < estimatedLegacyTotal) {
+        playerRef.totalExp = estimatedLegacyTotal;
+      }
     }
 
     if (!hasExpReserve) {

@@ -13,9 +13,9 @@ function getCultivationStage(level) {
 
 function getCultivationStageConfig(level) {
   const stage = getCultivationStage(level);
-  if (stage === 1) return { clickCost: 10000, clickExpCost: 1200, clickGainExp: 10 };
-  if (stage === 2) return { clickCost: 22000, clickExpCost: 2600, clickGainExp: 10 };
-  return { clickCost: 60000, clickExpCost: 7000, clickGainExp: 10 };
+  if (stage === 1) return { targetClicks: 42, clickGainExp: 10 };
+  if (stage === 2) return { targetClicks: 58, clickGainExp: 10 };
+  return { targetClicks: 72, clickGainExp: 10 };
 }
 
 function getCultivationTargetCumulativeCost(level) {
@@ -48,9 +48,7 @@ function getCultivationUpgradeRequiredExp(type, targetLevel) {
   if (!cfg) return 0;
   const safeTarget = Math.max(1, Math.min(cfg.maxLevel, Math.floor(Number(targetLevel) || 1)));
   const stageCfg = getCultivationStageConfig(safeTarget);
-  const levelCost = getCultivationLevelTargetCost(safeTarget);
-  const needClicks = Math.max(1, Math.ceil(levelCost / stageCfg.clickCost));
-  return needClicks * stageCfg.clickGainExp;
+  return stageCfg.targetClicks * stageCfg.clickGainExp;
 }
 
 const CULTIVATION_CONFIG = {
@@ -99,13 +97,15 @@ const CULTIVATION_UNLOCK_LEVEL = 20;
 window.CULTIVATION_UNLOCK_LEVEL = CULTIVATION_UNLOCK_LEVEL;
 
 function getCultivationNode(type) {
-  if (window.__JH_CULTIVATION_SYSTEM__ && typeof window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
-    window.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation(player);
+  if (!player.cultivation || typeof player.cultivation !== "object") player.cultivation = {};
+  const raw = player.cultivation[type];
+  if (!raw || typeof raw !== "object") {
+    player.cultivation[type] = { level: Math.max(0, Math.floor(Number(raw) || 0)), exp: 0 };
   }
-  if (!player.cultivation || !player.cultivation[type] || typeof player.cultivation[type] !== "object") {
-    return { level: 0, exp: 0 };
-  }
-  return player.cultivation[type];
+  const node = player.cultivation[type];
+  node.level = Math.max(0, Math.floor(Number(node.level) || 0));
+  node.exp = Math.max(0, Math.floor(Number(node.exp) || 0));
+  return node;
 }
 
 function getCultivationLevel(type) {
@@ -117,15 +117,10 @@ function getCultivationCost(type) {
   if (!cfg) return 0;
   const level = getCultivationLevel(type);
   if (level >= cfg.maxLevel) return 0;
-  return getCultivationStageConfig(level + 1).clickCost;
-}
-
-function getCultivationExpCost(type) {
-  const cfg = CULTIVATION_CONFIG[type];
-  if (!cfg) return 0;
-  const level = getCultivationLevel(type);
-  if (level >= cfg.maxLevel) return 0;
-  return getCultivationStageConfig(level + 1).clickExpCost;
+  const nextLevel = level + 1;
+  const stageCfg = getCultivationStageConfig(nextLevel);
+  const levelCost = getCultivationLevelTargetCost(nextLevel);
+  return Math.max(1, Math.ceil(levelCost / Math.max(1, stageCfg.targetClicks)));
 }
 
 function getCultivationBonus(type) {
@@ -212,5 +207,6 @@ function upgradeCultivation(type) {
     addLog("event", `你修炼了${cfg.name}，进度提升（${node.exp}/${getCultivationUpgradeRequiredExp(type, currentLevel + 1)}）。`);
     setNotice("success", `${cfg.name}修炼进度提升。`);
   }
+  player.cultivation[type] = { level: node.level || 0, exp: node.exp || 0 };
   return true;
 }
