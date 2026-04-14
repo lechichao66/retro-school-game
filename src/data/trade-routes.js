@@ -16,7 +16,7 @@ window.__JH_DATA__.tradeRoutes = {
       id: "forest_supplies",
       name: "密林补给线",
       intro: "往返后山密林与村镇，收益更高但波动更大。",
-      baseSilver: 28,
+      baseSilver: 30,
       baseExp: 8,
       requiredLevel: 8,
       variancePct: 0.16,
@@ -26,11 +26,11 @@ window.__JH_DATA__.tradeRoutes = {
       id: "yanpo_escort",
       name: "落雁护送线",
       intro: "接落雁坡商队护送，适合中期角色。",
-      baseSilver: 38,
+      baseSilver: 36,
       baseExp: 10,
       requiredLevel: 16,
       variancePct: 0.2,
-      mapBonusRate: 0.05
+      mapBonusRate: 0.045
     }
   ]
 };

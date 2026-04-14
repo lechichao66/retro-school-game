@@ -69,6 +69,22 @@
     return cfg.routes.find((x) => x.id === selectedId) || cfg.routes[0] || null;
   }
 
+  function formatEconomyWorkSummary(detail) {
+    const source = detail && typeof detail === "object" ? detail : {};
+    const formula = source.formula && typeof source.formula === "object" ? source.formula : {};
+    const rewards = source.rewards && typeof source.rewards === "object" ? source.rewards : {};
+    const fluctuationPct = Math.round((Number(formula.randomFactor) || 0) * 100);
+    const fluctuationText = fluctuationPct >= 0 ? `+${fluctuationPct}%` : `${fluctuationPct}%`;
+    const levelPart = Number(formula.levelBonus) || 0;
+    const mapPart = Number(formula.mapBonus) || 0;
+    const sectPart = Number(formula.sectBonus) || 0;
+    const basePart = Number(formula.baseSilver) || 0;
+    const rawPart = basePart + levelPart + mapPart;
+    const income = Number(formula.income) || Number(rewards.silver) || 0;
+    const exp = Number(rewards.exp) || 0;
+    return `【跑商结算】路线【${source.routeName || "未知路线"}】｜体力 -${source.staminaCost || 0}｜银两 +${income}｜经验 +${exp}｜拆解：基础${basePart} + 等级加成${levelPart} + 地图加成${mapPart} = ${rawPart}，波动${fluctuationText}${sectPart ? `，门派加成 +${sectPart}` : ""}，最终银两 ${income}。`;
+  }
+
   function ensureGrowthState() {
     if (!Array.isArray(player.treasureMaps)) player.treasureMaps = [];
     if (!player.assistantProfessions || typeof player.assistantProfessions !== "object") {
@@ -338,7 +354,7 @@
       }
     };
 
-    addGameplayLog("economy", `[workSettlement] ${JSON.stringify(settleDetail)}`, "event");
+    addGameplayLog("economy", formatEconomyWorkSummary(settleDetail), "event");
     setNotice("success", `跑商成功：${route.name}，银两 +${income}，经验 +${expGain}。`);
     onPlayerActionProgress("work", { routeId: route.id, income, expGain });
     updateAll();
