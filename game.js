@@ -86,6 +86,7 @@ function toggleSectDutyHangup() { return window.__JH_GAME_ACTIONS__.toggleSectDu
 function grantTreasureMap() { return window.__JH_GAME_ACTIONS__.grantTreasureMap(); }
 function useTreasureMap(idx) { return window.__JH_GAME_ACTIONS__.useTreasureMap(idx); }
 function digTreasure(idx) { return window.__JH_GAME_ACTIONS__.digTreasure(idx); }
+function runTreasureRound() { return window.__JH_GAME_ACTIONS__.runTreasureRound(); }
 function runDungeon(id) { return window.__JH_GAME_ACTIONS__.runDungeon(id); }
 function saveGameBtn() { return window.__JH_GAME_ACTIONS__.saveGameBtn(); }
 function loadGameBtn() { return window.__JH_GAME_ACTIONS__.loadGameBtn(); }
@@ -150,6 +151,7 @@ window.toggleSectDutyHangup = toggleSectDutyHangup;
 window.grantTreasureMap = grantTreasureMap;
 window.useTreasureMap = useTreasureMap;
 window.digTreasure = digTreasure;
+window.runTreasureRound = runTreasureRound;
 window.runDungeon = runDungeon;
 window.showEquipDetail = function showEquipDetail(slot) { return window.__JH_UI_RENDER__.showEquipDetail(slot); };
 window.setShopCategory = function setShopCategory(category) { return window.__JH_UI_RENDER__.setShopCategory(category); };
