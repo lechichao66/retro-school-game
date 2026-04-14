@@ -124,6 +124,7 @@
     ["adventure", "dungeon", "treasure", "hangup", "sectHangup", "economy"].forEach((key) => {
       if (!Array.isArray(playerRef.logbook[key])) playerRef.logbook[key] = [];
     });
+    if (!playerRef.dungeonLastRun || typeof playerRef.dungeonLastRun !== "object") playerRef.dungeonLastRun = null;
 
     if (!playerRef.hangup || typeof playerRef.hangup !== "object") playerRef.hangup = {};
     if (!playerRef.hangup.lobby || typeof playerRef.hangup.lobby !== "object") playerRef.hangup.lobby = { active: false, lastSettleAt: 0 };

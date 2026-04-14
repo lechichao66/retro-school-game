@@ -87,6 +87,7 @@
 
   function ensureGrowthState() {
     if (!Array.isArray(player.treasureMaps)) player.treasureMaps = [];
+    if (!player.dungeonLastRun || typeof player.dungeonLastRun !== "object") player.dungeonLastRun = null;
     if (!player.assistantProfessions || typeof player.assistantProfessions !== "object") {
       player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
     }
@@ -762,36 +763,87 @@
   }
 
   function runDungeon(dungeonId) {
+    ensureGrowthState();
     const cfg = (g.__JH_DATA__?.dungeonTemplates || []).find((x) => x.id === dungeonId);
     if (!cfg) return;
     if (player.level < (cfg.minLevel || 1)) return setNotice("error", "等级不足，无法进入副本。"), showDungeon();
     if (!consumeStamina(cfg.staminaCost || 15)) return setNotice("error", "体力不足，无法进入副本。"), showDungeon();
-    const powerGap = getPowerValue() - (cfg.recommendedPower || 0);
-    if (powerGap < -200) {
-      loseHp(20);
-      addGameplayLog("dungeon", `你挑战副本【${cfg.name}】失败，体力消耗且气血受损。`, "error");
-      setNotice("error", "副本挑战失败：当前战力偏低。");
-      updateAll();
-      showDungeon();
-      return;
-    }
     const waves = Array.isArray(cfg.waves) ? cfg.waves : [];
-    const wavePenalty = Math.max(0, waves.length - 1) * 60;
-    if (powerGap < -wavePenalty) {
-      loseHp(25);
-      addGameplayLog("dungeon", `你在副本【${cfg.name}】多波战中败退。`, "error");
-      setNotice("error", "副本挑战失败：多波战强度过高。");
-      updateAll();
-      showDungeon();
-      return;
+    const totalWaves = Math.max(1, waves.length);
+    const waveList = waves.length ? waves : ["守关杂兵"];
+    const playerPower = getPowerValue();
+    const performanceRoll = Math.floor((Math.random() * 81) - 40);
+    const effectivePower = playerPower + performanceRoll;
+    let clearedWaves = 0;
+    let failedWave = 0;
+    let failedWaveName = "";
+
+    addGameplayLog("dungeon", `你进入副本【${cfg.name}】，本次共${totalWaves}个阶段（体力 -${cfg.staminaCost || 15}）。`, "event");
+
+    for (let i = 0; i < waveList.length; i += 1) {
+      const waveName = waveList[i];
+      const idx = i + 1;
+      const waveDifficulty = (cfg.recommendedPower || 0) + (i * 65);
+      const pressureDelta = effectivePower + (i * 18) - waveDifficulty;
+      const pressureText = pressureDelta >= 120 ? "压制" : pressureDelta >= 0 ? "胶着" : "吃力";
+      addGameplayLog("dungeon", `【阶段${idx}/${totalWaves}】${waveName}（战况：${pressureText}）。`, "event");
+      if (pressureDelta >= 0) {
+        clearedWaves += 1;
+        addGameplayLog("dungeon", `你通过了第${idx}阶段。`, "success");
+        continue;
+      }
+      failedWave = idx;
+      failedWaveName = waveName;
+      const failReason = pressureDelta < -180
+        ? "战力差距过大，被持续压制"
+        : waveName.includes("BOSS")
+          ? "BOSS爆发过高，未能顶住关键回合"
+          : waveName.includes("精英")
+            ? "精英配合强，节奏被打乱"
+            : "续战能力不足，在缠斗中败退";
+      addGameplayLog("dungeon", `第${idx}阶段失利（${waveName}）：${failReason}。`, "error");
+      break;
     }
+
+    const success = failedWave === 0 && clearedWaves >= totalWaves;
+    const completionRate = totalWaves > 0 ? (clearedWaves / totalWaves) : 0;
     const reward = cfg.reward || {};
-    player.money += reward.money || 0;
-    gainExp(reward.exp || 0);
-    (reward.items || []).forEach((it) => addItem(it.name, it.count || 1));
-    const waveText = waves.length ? `共${waves.length}波，BOSS：${cfg.boss || "无"}` : "单波";
-    addGameplayLog("dungeon", `你通关副本【${cfg.name}】（${waveText}），获得银两${reward.money || 0}、经验${reward.exp || 0}。`, "success");
-    setNotice("success", `副本通关：${cfg.name}`);
+    const perfAdj = Math.max(-0.05, Math.min(0.08, (effectivePower - (cfg.recommendedPower || 0)) / 2400));
+    const completionAdj = success ? 1 : Math.min(0.2, 0.05 + completionRate * 0.12);
+    const finalMoney = Math.max(0, Math.round((reward.money || 0) * completionAdj * (1 + perfAdj)));
+    const finalExp = Math.max(0, Math.round((reward.exp || 0) * completionAdj * (1 + perfAdj)));
+    if (finalMoney > 0) player.money += finalMoney;
+    if (finalExp > 0) gainExp(finalExp);
+    if (success) (reward.items || []).forEach((it) => addItem(it.name, it.count || 1));
+
+    player.dungeonLastRun = {
+      time: typeof getNowTime === "function" ? getNowTime() : "",
+      dungeonId: cfg.id,
+      dungeonName: cfg.name,
+      success,
+      totalWaves,
+      clearedWaves,
+      failedWave,
+      failedWaveName,
+      completionRate,
+      performanceAdjPct: Math.round(perfAdj * 100),
+      rewards: {
+        money: finalMoney,
+        exp: finalExp,
+        itemsGranted: success ? (reward.items || []).length : 0
+      }
+    };
+
+    if (success) {
+      const waveText = `共${totalWaves}阶段，BOSS：${cfg.boss || "无"}`;
+      addGameplayLog("dungeon", `你通关副本【${cfg.name}】（${waveText}），获得银两${finalMoney}、经验${finalExp}。`, "success");
+      setNotice("success", `副本通关：${cfg.name}`);
+    } else {
+      const hpLoss = Math.max(8, 18 + Math.round((1 - completionRate) * 14));
+      loseHp(hpLoss);
+      addGameplayLog("dungeon", `你在副本【${cfg.name}】第${failedWave}阶段败退，仅获得少量保底：银两${finalMoney}、经验${finalExp}。`, "error");
+      setNotice("error", `副本挑战失败：止步第${failedWave}阶段。`);
+    }
     updateAll();
     showDungeon();
   }

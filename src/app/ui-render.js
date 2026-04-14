@@ -679,7 +679,12 @@
     const rows = dungeons.map((d) => `<div class='card'><h3>${d.name}</h3><div class='list-line'>类型：${d.type || "副本"}</div><div class='list-line'>建议战力：${d.recommendedPower}（高于普通探索）</div><div class='list-line'>要求：等级${d.minLevel}+，体力消耗${d.staminaCost}</div><div class='list-line'>多波：${(d.waves || []).join(" → ") || "单波"}</div><div class='list-line'>奖励：银两${d.reward.money}，经验${d.reward.exp}</div><div class='shop-actions'><button class='small-btn' onclick="runDungeon('${d.id}')">进入副本</button></div></div>`).join("");
     setMainTitle("副本入口");
     const latest = getLogbookEntries("dungeon", 1)[0];
-    setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'>副本定位：多波怪 + 精英/BOSS + 高难度 + 高奖励。</div><div class='list-line'>最近一次副本：${latest ? `${latest.time} ${latest.text}` : "暂无记录"}</div><div class='shop-actions'><button class='small-btn' onclick="showLogbook('dungeon')">查看完整副本日志</button></div></div><div class='card'><h3>副本最近记录</h3>${renderRecentLogbook("dungeon", 4, "暂无副本记录。")}</div><div class='status-grid'>${rows}</div>`);
+    const lastRun = player.dungeonLastRun && typeof player.dungeonLastRun === "object" ? player.dungeonLastRun : null;
+    const completionText = lastRun ? `${Math.round((Number(lastRun.completionRate) || 0) * 100)}%` : "0%";
+    const processSummary = lastRun
+      ? `<div class='card'><h3>最近一次副本过程摘要</h3><div class='list-line'>时间：${lastRun.time || "未知"}｜副本：${lastRun.dungeonName || "未知"}</div><div class='list-line'>结果：${lastRun.success ? "通关" : `失败（止步第${lastRun.failedWave || "?"}阶段）`}</div><div class='list-line'>完成度：${lastRun.clearedWaves || 0} / ${lastRun.totalWaves || 0}（${completionText}）</div><div class='list-line'>失败波次：${lastRun.failedWaveName || "无"}</div><div class='list-line'>奖励结算：银两${lastRun.rewards?.money || 0}，经验${lastRun.rewards?.exp || 0}，表现修正${lastRun.performanceAdjPct >= 0 ? "+" : ""}${lastRun.performanceAdjPct || 0}%</div></div>`
+      : "<div class='card'><h3>最近一次副本过程摘要</h3><div class='list-line'>暂无副本挑战记录。</div></div>";
+    setMainContent(`${renderNoticeHtml()}<div class='card'><div class='list-line'>副本定位：多波怪 + 精英/BOSS + 高难度 + 高奖励。</div><div class='list-line'>最近一次副本：${latest ? `${latest.time} ${latest.text}` : "暂无记录"}</div><div class='shop-actions'><button class='small-btn' onclick="showLogbook('dungeon')">查看完整副本日志</button></div></div>${processSummary}<div class='card'><h3>副本最近记录</h3>${renderRecentLogbook("dungeon", 4, "暂无副本记录。")}</div><div class='status-grid'>${rows}</div>`);
   }
 
   function showCodex() {
