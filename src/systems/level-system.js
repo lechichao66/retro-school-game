@@ -1,5 +1,6 @@
 (function initLevelSystem(global) {
   const g = global || window;
+  const AUTO_LEVEL_CAP = 40;
 
   function toSafeNumber(value, fallback = 0) {
     const n = Number(value);
@@ -8,12 +9,21 @@
 
   function getRequiredExpForLevel(level) {
     const safeLevel = Math.max(1, Math.floor(toSafeNumber(level, 1)));
-    if (safeLevel <= 10) return 240 + safeLevel * 180;
-    if (safeLevel <= 20) return 2100 + (safeLevel - 10) * 900;
-    if (safeLevel <= 30) return 11800 + (safeLevel - 20) * 2600;
-    if (safeLevel <= 40) return 39800 + (safeLevel - 30) * 6800;
-    if (safeLevel <= 50) return 112000 + (safeLevel - 40) * 12800;
-    return 240000 + (safeLevel - 50) * 18000;
+    if (safeLevel <= 20) return 420 + (safeLevel - 1) * 210;
+    if (safeLevel <= 40) return 4800 + (safeLevel - 21) * 850;
+    if (safeLevel <= 70) return 22000 + (safeLevel - 41) * 2200;
+    if (safeLevel <= 100) return 88000 + (safeLevel - 71) * 4600;
+    if (safeLevel <= 130) return 226000 + (safeLevel - 101) * 7800;
+    if (safeLevel <= 150) return 460000 + (safeLevel - 131) * 12000;
+    return 700000 + (safeLevel - 151) * 16000;
+  }
+
+  function getAutoLevelCap() {
+    return AUTO_LEVEL_CAP;
+  }
+
+  function getExpReserve(playerRef) {
+    return Math.max(0, toSafeNumber(playerRef?.expReserve, 0));
   }
 
   function gainExpAndLevelUp(playerRef, amount, hooks = {}) {
@@ -22,12 +32,13 @@
     }
 
     const gainedExp = Math.max(0, toSafeNumber(amount, 0));
-    playerRef.exp = Math.max(0, toSafeNumber(playerRef.exp, 0)) + gainedExp;
+    playerRef.totalExp = Math.max(0, toSafeNumber(playerRef.totalExp, 0)) + gainedExp;
+    playerRef.expReserve = getExpReserve(playerRef) + gainedExp;
     playerRef.level = Math.max(1, Math.floor(toSafeNumber(playerRef.level, 1)));
 
     let levelUps = 0;
-    while (playerRef.exp >= getRequiredExpForLevel(playerRef.level)) {
-      playerRef.exp -= getRequiredExpForLevel(playerRef.level);
+    while (playerRef.level < AUTO_LEVEL_CAP && playerRef.expReserve >= getRequiredExpForLevel(playerRef.level)) {
+      playerRef.expReserve -= getRequiredExpForLevel(playerRef.level);
       playerRef.level += 1;
       levelUps += 1;
 
@@ -39,8 +50,24 @@
     return { levelUps, gainedExp };
   }
 
+  function tryManualLevelUp(playerRef, hooks = {}) {
+    if (!playerRef || typeof playerRef !== "object") return { ok: false, reason: "invalid_player" };
+    playerRef.level = Math.max(1, Math.floor(toSafeNumber(playerRef.level, 1)));
+    playerRef.expReserve = getExpReserve(playerRef);
+    if (playerRef.level < AUTO_LEVEL_CAP) return { ok: false, reason: "auto_phase" };
+    const need = getRequiredExpForLevel(playerRef.level);
+    if (playerRef.expReserve < need) return { ok: false, reason: "exp_insufficient", need };
+    playerRef.expReserve -= need;
+    playerRef.level += 1;
+    if (typeof hooks.onLevelUp === "function") hooks.onLevelUp(playerRef.level, 1);
+    return { ok: true, need, nextLevel: playerRef.level };
+  }
+
   g.__JH_LEVEL_SYSTEM__ = {
+    AUTO_LEVEL_CAP,
     getRequiredExpForLevel,
-    gainExpAndLevelUp
+    getAutoLevelCap,
+    gainExpAndLevelUp,
+    tryManualLevelUp
   };
 })(window);

@@ -18,7 +18,8 @@ function defaultPlayer() {
     vigor: { current: 100, max: 100 },
     lastRecoveryAt: Date.now(),
     money: 50,
-    exp: 0,
+    totalExp: 0,
+    expReserve: 0,
     level: 1,
 
     inventory: {
@@ -38,11 +39,11 @@ function defaultPlayer() {
     },
 
     cultivation: {
-      attack: 0,
-      defense: 0,
-      hp: 0,
-      mp: 0,
-      resist: 0
+      attack: { level: 0, exp: 0 },
+      defense: { level: 0, exp: 0 },
+      hp: { level: 0, exp: 0 },
+      mp: { level: 0, exp: 0 },
+      resist: { level: 0, exp: 0 }
     },
 
     skills: ["ironSkin", "quickSlash"],
@@ -79,7 +80,8 @@ function getPlayerPanelData() {
     mp: player.mp,
     maxMp: typeof getMaxMp === "function" ? getMaxMp() : player.mp,
     money: player.money,
-    exp: player.exp,
+    totalExp: player.totalExp || 0,
+    expReserve: player.expReserve || 0,
     level: player.level
   };
 }

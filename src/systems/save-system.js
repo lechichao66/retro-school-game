@@ -2,7 +2,7 @@
   const g = global || window;
 
   const SAVE_KEY = "jianghu_save_v03";
-  const SAVE_VERSION = 6;
+  const SAVE_VERSION = 7;
 
   function getDefaultSkills() {
     return ["ironSkin", "quickSlash"];
@@ -61,12 +61,46 @@
     }
 
     return {
-      attack: 0,
-      defense: 0,
-      hp: 0,
-      mp: 0,
-      resist: 0
+      attack: { level: 0, exp: 0 },
+      defense: { level: 0, exp: 0 },
+      hp: { level: 0, exp: 0 },
+      mp: { level: 0, exp: 0 },
+      resist: { level: 0, exp: 0 }
     };
+  }
+
+  function getRequiredExpForLevelSafe(level) {
+    if (g.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel) return g.__JH_LEVEL_SYSTEM__.getRequiredExpForLevel(level);
+    return Math.max(100, Math.floor(Number(level) || 1) * 100);
+  }
+
+  function estimateLegacyTotalExp(level, legacyExp) {
+    const safeLevel = Math.max(1, Math.floor(Number(level) || 1));
+    let total = Math.max(0, Number(legacyExp) || 0);
+    for (let lv = 1; lv < safeLevel; lv += 1) {
+      total += getRequiredExpForLevelSafe(lv);
+    }
+    return Math.floor(total);
+  }
+
+  function ensureExpFields(playerRef) {
+    const legacyExp = Math.max(0, Number(playerRef.exp) || 0);
+    const hasTotalExp = Number.isFinite(Number(playerRef.totalExp));
+    const hasExpReserve = Number.isFinite(Number(playerRef.expReserve));
+
+    if (!hasTotalExp) {
+      playerRef.totalExp = estimateLegacyTotalExp(playerRef.level, legacyExp);
+    } else {
+      playerRef.totalExp = Math.max(0, Number(playerRef.totalExp) || 0);
+    }
+
+    if (!hasExpReserve) {
+      playerRef.expReserve = legacyExp;
+    } else {
+      playerRef.expReserve = Math.max(0, Number(playerRef.expReserve) || 0);
+    }
+
+    delete playerRef.exp;
   }
 
   function ensurePlayerCompatibility(playerRef) {
@@ -87,6 +121,8 @@
     equipSlots.forEach((slot) => {
       if (typeof playerRef.equips[slot] !== "string") playerRef.equips[slot] = "";
     });
+
+    ensureExpFields(playerRef);
 
     if (g.__JH_CULTIVATION_SYSTEM__ && typeof g.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
       g.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation(playerRef);
@@ -152,7 +188,8 @@
       playerRef.hp = g.safeNumber(playerRef.hp, typeof g.getMaxHp === "function" ? g.getMaxHp() : 100);
       playerRef.mp = g.safeNumber(playerRef.mp, typeof g.getMaxMp === "function" ? g.getMaxMp() : 80);
       playerRef.money = Math.max(0, g.safeNumber(playerRef.money, 0));
-      playerRef.exp = Math.max(0, g.safeNumber(playerRef.exp, 0));
+      playerRef.totalExp = Math.max(0, g.safeNumber(playerRef.totalExp, 0));
+      playerRef.expReserve = Math.max(0, g.safeNumber(playerRef.expReserve, 0));
     }
 
     return playerRef;

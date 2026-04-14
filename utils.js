@@ -56,7 +56,8 @@ function clampPlayer() {
   player.hp = safeNumber(player.hp, getMaxHp());
   player.mp = safeNumber(player.mp, getMaxMp());
   player.money = Math.max(0, safeNumber(player.money, 0));
-  player.exp = Math.max(0, safeNumber(player.exp, 0));
+  player.totalExp = Math.max(0, safeNumber(player.totalExp, 0));
+  player.expReserve = Math.max(0, safeNumber(player.expReserve, 0));
 
   const maxHp = getMaxHp();
   const maxMp = getMaxMp();
@@ -512,10 +513,12 @@ function gainExp(amount) {
       }
     });
   } else {
-    player.exp += amount;
+    player.totalExp = (player.totalExp || 0) + amount;
+    player.expReserve = (player.expReserve || 0) + amount;
     const getNeed = (lv) => window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(lv) || (lv * 100);
-    while (player.exp >= getNeed(player.level)) {
-      player.exp -= getNeed(player.level);
+    const autoCap = window.__JH_LEVEL_SYSTEM__?.AUTO_LEVEL_CAP || 40;
+    while (player.level < autoCap && player.expReserve >= getNeed(player.level)) {
+      player.expReserve -= getNeed(player.level);
       player.level += 1;
       player.hp = getMaxHp();
       player.mp = getMaxMp();
@@ -525,6 +528,24 @@ function gainExp(amount) {
   }
 
   clampPlayer();
+}
+
+function tryManualLevelUp() {
+  const levelSystem = window.__JH_LEVEL_SYSTEM__;
+  if (!levelSystem?.tryManualLevelUp) return { ok: false, reason: "unsupported" };
+  const result = levelSystem.tryManualLevelUp(player, {
+    onLevelUp(nextLevel) {
+      player.hp = getMaxHp();
+      player.mp = getMaxMp();
+      if (window.__JH_GAME_ACTIONS__?.updateCombatSkillLoadout) {
+        window.__JH_GAME_ACTIONS__.updateCombatSkillLoadout();
+      }
+      addLog("sys", `【突破】你突破至 ${nextLevel} 级，消耗经验池完成手动升级。`);
+      setNotice("success", `手动突破成功：已升至 ${nextLevel} 级。`);
+    }
+  });
+  clampPlayer();
+  return result;
 }
 
 function recoverHp(amount) {
@@ -638,7 +659,13 @@ function normalizePlayerAfterLoad() {
       };
     }
     if (!player.cultivation) {
-      player.cultivation = { attack: 0, defense: 0, hp: 0, mp: 0, resist: 0 };
+      player.cultivation = {
+        attack: { level: 0, exp: 0 },
+        defense: { level: 0, exp: 0 },
+        hp: { level: 0, exp: 0 },
+        mp: { level: 0, exp: 0 },
+        resist: { level: 0, exp: 0 }
+      };
     }
     if (!player.skills) player.skills = ["ironSkin", "quickSlash"];
     if (!player.martial) player.martial = { title: "", mastery: {}, realm: {}, learned: ["basic_fist"], activeSkill: "basic_fist" };
@@ -657,7 +684,9 @@ function normalizePlayerAfterLoad() {
     player.hp = safeNumber(player.hp, getMaxHp());
     player.mp = safeNumber(player.mp, getMaxMp());
     player.money = safeNumber(player.money, 0);
-    player.exp = safeNumber(player.exp, 0);
+    player.totalExp = safeNumber(player.totalExp, 0);
+    player.expReserve = safeNumber(player.expReserve, player.exp || 0);
+    delete player.exp;
   }
 
   clampPlayer();
