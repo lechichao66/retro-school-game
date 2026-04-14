@@ -124,6 +124,9 @@
     ["adventure", "dungeon", "treasure", "hangup", "sectHangup", "economy"].forEach((key) => {
       if (!Array.isArray(playerRef.logbook[key])) playerRef.logbook[key] = [];
     });
+    if (!playerRef.treasureDaily || typeof playerRef.treasureDaily !== "object") playerRef.treasureDaily = { date: "", rounds: 0 };
+    if (typeof playerRef.treasureDaily.date !== "string") playerRef.treasureDaily.date = "";
+    playerRef.treasureDaily.rounds = Math.max(0, Math.floor(Number(playerRef.treasureDaily.rounds) || 0));
     if (!playerRef.dungeonLastRun || typeof playerRef.dungeonLastRun !== "object") playerRef.dungeonLastRun = null;
 
     if (!playerRef.hangup || typeof playerRef.hangup !== "object") playerRef.hangup = {};

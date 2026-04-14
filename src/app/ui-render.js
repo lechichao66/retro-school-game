@@ -665,13 +665,21 @@
     currentView = "inn";
     const activeSection = section === "treasure" ? "treasure" : "life";
     const maps = player.treasureMaps || [];
-    const treasureRows = maps.map((entry, idx) => `<div class='card'><div class='list-line'><b>${entry.name}</b>（目标：${entry.area}）</div><div class='list-line'>状态：${entry.used ? "已使用" : "可使用"}</div><div class='shop-actions'><button class='small-btn' onclick='useTreasureMap(${idx})' ${entry.used ? "disabled" : ""}>使用宝图</button><button class='small-btn' onclick='digTreasure(${idx})' ${entry.used ? "" : "disabled"}>挖宝</button></div></div>`).join("");
+    const treasureCfg = g.__JH_DATA__?.treasureSystemConfig || {};
+    const normalMapCfg = treasureCfg.normalMap || {};
+    const roundCfg = treasureCfg.round || {};
+    const recyclePrice = Math.max(0, Math.floor(Number(normalMapCfg.recyclePrice) || 20000));
+    const dailyLimit = Math.max(1, Math.floor(Number(roundCfg.dailyRoundLimit) || 12));
+    const dailyInfo = player.treasureDaily && typeof player.treasureDaily === "object"
+      ? player.treasureDaily
+      : { rounds: 0 };
+    const treasureRows = maps.map((entry, idx) => `<div class='card'><div class='list-line'><b>${entry.name}</b>（目标：${entry.area}）</div><div class='list-line'>状态：${entry.used ? "已使用" : "可使用"}</div><div class='shop-actions'><button class='small-btn' onclick='useTreasureMap(${idx})' ${entry.used ? "disabled" : ""}>使用宝图</button><button class='small-btn' onclick='digTreasure(${idx})' ${entry.used ? "" : "disabled"}>挖宝</button><button class='small-btn' onclick='sellTreasureMap(${idx})'>卖图（${recyclePrice}）</button></div></div>`).join("");
     const lastRun = player.treasureLastRun && typeof player.treasureLastRun === "object" ? player.treasureLastRun : null;
     const eventCounter = lastRun?.eventCounter || {};
     const lastRunSummary = lastRun
       ? `<div class='card'><h3>最近一轮打图摘要</h3><div class='list-line'>时间：${lastRun.time || "未知"}｜地点：${lastRun.area || "未知"}</div><div class='list-line'>轮次：${lastRun.attempts || 0}次｜扑空${eventCounter.empty || 0}｜银两点${eventCounter.findMoney || 0}｜物资点${eventCounter.findItem || 0}｜宝图掉落${eventCounter.mapDrop || 0}｜机关${eventCounter.trap || 0}｜遭遇${eventCounter.ambush || 0}</div><div class='list-line'>奖励：银两${lastRun.rewards?.money || 0}｜物品：${Object.keys(lastRun.rewards?.items || {}).length ? Object.keys(lastRun.rewards.items).map((name) => `${name} x${lastRun.rewards.items[name]}`).join("，") : "无"}｜新增宝图${(lastRun.rewards?.maps || []).length || 0}</div><div class='list-line'>损耗：气血 -${lastRun.hpLoss || 0}</div></div>`
       : "<div class='card'><h3>最近一轮打图摘要</h3><div class='list-line'>暂无打图摘要，可直接执行一轮打图获取宝图与其他奖励。</div></div>";
-    const treasureModule = `<div class='card'><h3>宝图模块</h3><div class='list-line'>主玩法：打图一轮（10次）→ 结算可能获得宝图/银两/物资/事件 → 再对已有宝图执行使用或挖图。</div><div class='list-line'>挖图属于后续处理：需要先持有并启用宝图，挖图会消耗该宝图。</div><div class='shop-actions'><button class='small-btn' onclick='grantTreasureMap()'>获得一张样板宝图</button><button class='small-btn' onclick='runTreasureRound()'>执行一轮打图（10次）</button><button class='small-btn' onclick=\"showInn('treasure')\">刷新宝图页</button><button class='small-btn' onclick=\"showLogbook('treasure')\">查看完整宝图日志</button></div></div>${lastRunSummary}<div class='card'><h3>宝图最近记录</h3>${renderRecentLogbook("treasure", 8, "暂无宝图记录。")}</div>${treasureRows || "<div class='card'>暂无宝图，可先领取样板。</div>"}`;
+    const treasureModule = `<div class='card'><h3>宝图模块</h3><div class='list-line'>主玩法：打图一轮（每轮${Math.max(1, Math.floor(Number(roundCfg.attemptsPerRound) || 10))}次）→ 结算可能获得宝图/银两/物资/事件 → 再对已有宝图执行使用或挖图。</div><div class='list-line'>普通宝图可直接回收：固定 ${recyclePrice} 银两；挖图收益围绕 2 万银两波动并带保底，同时可掉落超级宝图碎片。</div><div class='list-line'>今日轮次：${dailyInfo.rounds || 0} / ${dailyLimit}</div><div class='shop-actions'><button class='small-btn' onclick='grantTreasureMap()'>获得一张样板宝图</button><button class='small-btn' onclick='runTreasureRound()'>执行一轮打图</button><button class='small-btn' onclick=\"showInn('treasure')\">刷新宝图页</button><button class='small-btn' onclick=\"showLogbook('treasure')\">查看完整宝图日志</button></div></div>${lastRunSummary}<div class='card'><h3>宝图最近记录</h3>${renderRecentLogbook("treasure", 8, "暂无宝图记录。")}</div>${treasureRows || "<div class='card'>暂无宝图，可先领取样板。</div>"}`;
     const lifeModule = `<div class='card'><h3>客栈修整</h3><div class='list-line'>在客栈休息可恢复气血、内力、体力与活力。</div><div class='list-line'>当前体力：${player.stamina?.current || 0} / ${player.stamina?.max || 0}，活力：${player.vigor?.current || 0} / ${player.vigor?.max || 0}</div><div class='shop-actions'><button class='small-btn' onclick='rest()'>休息</button><button class='small-btn' onclick=\"showInn('treasure')\">前往宝图模块</button></div></div>`;
 
     setMainTitle("客栈 / 生活页");

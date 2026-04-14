@@ -3,6 +3,7 @@ window.__JH_DATA__ = window.__JH_DATA__ || {};
 window.__JH_DATA__.treasureMapTemplates = [
   {
     id: "map_newbie_hill",
+    tier: "normal",
     name: "残旧宝图·后山",
     area: "后山密林",
     staminaCost: 12,
@@ -14,6 +15,40 @@ window.__JH_DATA__.treasureMapTemplates = [
     ]
   }
 ];
+
+window.__JH_DATA__.treasureSystemConfig = {
+  normalMap: {
+    recyclePrice: 20000,
+    digSilver: {
+      center: 20000,
+      swing: 5000,
+      guaranteedMin: 16000
+    },
+    superFragment: {
+      itemName: "超级宝图碎片",
+      dropChance: 0.2,
+      dropMin: 1,
+      dropMax: 2
+    }
+  },
+  round: {
+    attemptsPerRound: 10,
+    dailyRoundLimit: 12,
+    guaranteedMinSilver: 12000,
+    eventWeights: {
+      empty: 24,
+      findMoney: 30,
+      findItem: 22,
+      mapDrop: 14,
+      trap: 6,
+      ambush: 4
+    },
+    moneyEventSilver: {
+      min: 1800,
+      max: 4600
+    }
+  }
+};
 
 window.__JH_DATA__.dungeonTemplates = [
   {

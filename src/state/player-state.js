@@ -70,6 +70,7 @@
         economy: []
       },
       treasureLastRun: null,
+      treasureDaily: { date: "", rounds: 0 },
       dungeonLastRun: null,
       trade: {
         selectedRouteId: "novice_loop"

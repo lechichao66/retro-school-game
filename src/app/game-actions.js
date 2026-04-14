@@ -88,12 +88,38 @@
   function ensureGrowthState() {
     if (!Array.isArray(player.treasureMaps)) player.treasureMaps = [];
     if (!player.treasureLastRun || typeof player.treasureLastRun !== "object") player.treasureLastRun = null;
+    if (!player.treasureDaily || typeof player.treasureDaily !== "object") player.treasureDaily = { date: "", rounds: 0 };
     if (!player.dungeonLastRun || typeof player.dungeonLastRun !== "object") player.dungeonLastRun = null;
     if (!player.assistantProfessions || typeof player.assistantProfessions !== "object") {
       player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
     }
     if (!player.unlockedSecretTechs || typeof player.unlockedSecretTechs !== "object") player.unlockedSecretTechs = {};
     ensureMartialState();
+  }
+
+  function getTreasureConfig() {
+    return g.__JH_DATA__?.treasureSystemConfig || {};
+  }
+
+  function getTreasureRoundConfig() {
+    return getTreasureConfig().round || {};
+  }
+
+  function getNormalTreasureConfig() {
+    return getTreasureConfig().normalMap || {};
+  }
+
+  function getTodayKey() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function ensureTreasureDailyState() {
+    if (!player.treasureDaily || typeof player.treasureDaily !== "object") player.treasureDaily = { date: "", rounds: 0 };
+    const today = getTodayKey();
+    if (player.treasureDaily.date !== today) {
+      player.treasureDaily.date = today;
+      player.treasureDaily.rounds = 0;
+    }
   }
 
   function ensureHangup() {
@@ -731,25 +757,61 @@
     showTreasure();
   }
 
+  function sellTreasureMap(index) {
+    ensureGrowthState();
+    const map = player.treasureMaps[index];
+    if (!map) return;
+    const normalCfg = getNormalTreasureConfig();
+    const recyclePrice = Math.max(0, Math.floor(Number(normalCfg.recyclePrice) || 20000));
+    const mapTier = map.tier || "normal";
+    if (mapTier !== "normal") {
+      setNotice("error", "当前仅支持普通宝图固定回收。");
+      showTreasure();
+      return;
+    }
+    player.money += recyclePrice;
+    player.treasureMaps.splice(index, 1);
+    addGameplayLog("treasure", `你回收了普通宝图【${map.name || "无名宝图"}】，银两 +${recyclePrice}。`, "success");
+    setNotice("success", `卖图完成：银两 +${recyclePrice}`);
+    updateAll();
+    showTreasure();
+  }
+
   function digTreasure(index) {
     ensureGrowthState();
     const map = player.treasureMaps[index];
     if (!map?.used) return;
+    const normalCfg = getNormalTreasureConfig();
     const monsterRoll = Math.random() < (map.encounterRate || 0.3);
     if (monsterRoll) {
       addGameplayLog("treasure", "挖宝时惊动了守宝小怪，你仓促应战后勉强脱身。", "event");
       loseHp(8);
     }
     const rewardTexts = [];
+    const moneyCenter = Number(normalCfg.digSilver?.center) || 20000;
+    const moneySwing = Number(normalCfg.digSilver?.swing) || 5000;
+    const guaranteedMin = Number(normalCfg.digSilver?.guaranteedMin) || 16000;
+    const rolledSilver = Math.round(moneyCenter + ((Math.random() * 2 - 1) * moneySwing));
+    const digSilver = Math.max(guaranteedMin, rolledSilver);
+    player.money += digSilver;
+    rewardTexts.push(`银两+${digSilver}`);
     (map.rewards || []).forEach((r) => {
-      if (r.type === "money") player.money += Number(r.value || 0);
-      if (r.type === "money") rewardTexts.push(`银两+${Number(r.value || 0)}`);
       if (r.type === "item" && r.name) {
         const c = Number(r.value || 1);
         addItem(r.name, c);
         rewardTexts.push(`${r.name} x${c}`);
       }
     });
+    const fragmentCfg = normalCfg.superFragment || {};
+    const fragmentName = fragmentCfg.itemName || "超级宝图碎片";
+    const fragmentChance = Number(fragmentCfg.dropChance) || 0.2;
+    if (Math.random() < fragmentChance) {
+      const minDrop = Math.max(1, Math.floor(Number(fragmentCfg.dropMin) || 1));
+      const maxDrop = Math.max(minDrop, Math.floor(Number(fragmentCfg.dropMax) || minDrop));
+      const fragmentCount = minDrop + Math.floor(Math.random() * (maxDrop - minDrop + 1));
+      addItem(fragmentName, fragmentCount);
+      rewardTexts.push(`${fragmentName} x${fragmentCount}`);
+    }
     player.treasureMaps.splice(index, 1);
     const rewardText = rewardTexts.length ? rewardTexts.join("，") : "无";
     setNotice("success", `挖宝成功：${rewardText}`);
@@ -760,15 +822,25 @@
 
   function runTreasureRound() {
     ensureGrowthState();
+    ensureTreasureDailyState();
     const mapTemplates = g.__JH_DATA__?.treasureMapTemplates || [];
-    const attempts = 10;
+    const roundCfg = getTreasureRoundConfig();
+    const attempts = Math.max(1, Math.floor(Number(roundCfg.attemptsPerRound) || 10));
+    const dailyRoundLimit = Math.max(1, Math.floor(Number(roundCfg.dailyRoundLimit) || 12));
+    if ((player.treasureDaily.rounds || 0) >= dailyRoundLimit) {
+      setNotice("error", `今日打图轮次已达上限（${dailyRoundLimit}轮）。`);
+      addGameplayLog("treasure", `你尝试继续打图，但今日轮次已满（${dailyRoundLimit}轮）。`, "event");
+      showTreasure();
+      return;
+    }
+    const eventWeights = roundCfg.eventWeights || {};
     const events = [
-      { id: "empty", weight: 28, type: "empty", text: "扑空一处疑似埋藏点。" },
-      { id: "findMoney", weight: 26, type: "money", text: "挖到散碎银两。" },
-      { id: "findItem", weight: 24, type: "item", text: "挖到残存包裹，发现材料。" },
-      { id: "mapDrop", weight: 8, type: "mapDrop", text: "循迹追踪后，你找到了一张残页宝图。" },
-      { id: "trap", weight: 12, type: "damage", text: "触发机关，负伤撤离。" },
-      { id: "ambush", weight: 10, type: "encounter", text: "惊动守宝小怪，仓促交手。" }
+      { id: "empty", weight: Number(eventWeights.empty) || 24, type: "empty", text: "扑空一处疑似埋藏点。" },
+      { id: "findMoney", weight: Number(eventWeights.findMoney) || 30, type: "money", text: "挖到散碎银两。" },
+      { id: "findItem", weight: Number(eventWeights.findItem) || 22, type: "item", text: "挖到残存包裹，发现材料。" },
+      { id: "mapDrop", weight: Number(eventWeights.mapDrop) || 14, type: "mapDrop", text: "循迹追踪后，你找到了一张残页宝图。" },
+      { id: "trap", weight: Number(eventWeights.trap) || 6, type: "damage", text: "触发机关，负伤撤离。" },
+      { id: "ambush", weight: Number(eventWeights.ambush) || 4, type: "encounter", text: "惊动守宝小怪，仓促交手。" }
     ];
     const pickEvent = () => {
       const total = events.reduce((sum, e) => sum + e.weight, 0);
@@ -802,9 +874,10 @@
       const ev = pickEvent();
       eventCounter[ev.id] += 1;
       if (ev.type === "money") {
-        const moneyPool = mapTemplates.map((cfg) => Number((cfg.rewards || []).find((x) => x.type === "money")?.value || 60));
-        const moneyBase = moneyPool.length ? moneyPool[Math.floor(Math.random() * moneyPool.length)] : 60;
-        const baseMoney = Math.max(10, Math.round(moneyBase * (0.2 + Math.random() * 0.6)));
+        const moneyCfg = roundCfg.moneyEventSilver || {};
+        const minMoney = Math.max(1, Math.floor(Number(moneyCfg.min) || 1800));
+        const maxMoney = Math.max(minMoney, Math.floor(Number(moneyCfg.max) || 4600));
+        const baseMoney = minMoney + Math.floor(Math.random() * (maxMoney - minMoney + 1));
         player.money += baseMoney;
         totalMoney += baseMoney;
       } else if (ev.type === "item") {
@@ -828,6 +901,15 @@
       addGameplayLog("treasure", `【第${i + 1}次】${ev.text}`, ev.type === "damage" ? "error" : "event");
     }
 
+    const guaranteedRoundSilver = Math.max(0, Math.floor(Number(roundCfg.guaranteedMinSilver) || 12000));
+    if (totalMoney < guaranteedRoundSilver) {
+      const subsidy = guaranteedRoundSilver - totalMoney;
+      totalMoney += subsidy;
+      player.money += subsidy;
+      addGameplayLog("treasure", `本轮触发保底银两，额外补发 ${subsidy}。`, "event");
+    }
+    player.treasureDaily.rounds = (player.treasureDaily.rounds || 0) + 1;
+
     const itemText = Object.keys(rewardItems).length
       ? Object.keys(rewardItems).map((name) => `${name} x${rewardItems[name]}`).join("，")
       : "无";
@@ -839,11 +921,13 @@
       eventCounter,
       rewards: { money: totalMoney, items: rewardItems, maps: rewardMaps },
       hpLoss: totalDamage,
-      summaryText: `银两+${totalMoney}，物品：${itemText}，宝图：${mapText}，受伤-${totalDamage}。`
+      summaryText: `银两+${totalMoney}，物品：${itemText}，宝图：${mapText}，受伤-${totalDamage}。`,
+      dailyRounds: player.treasureDaily.rounds,
+      dailyRoundLimit
     };
 
     addGameplayLog("treasure", `本轮打图结束：${player.treasureLastRun.summaryText}`, "success");
-    setNotice("success", `打图完成：银两+${totalMoney}，新增宝图${rewardMaps.length}，受伤-${totalDamage}。`);
+    setNotice("success", `打图完成：银两+${totalMoney}，新增宝图${rewardMaps.length}，受伤-${totalDamage}（今日${player.treasureDaily.rounds}/${dailyRoundLimit}轮）。`);
     updateAll();
     showTreasure();
   }
@@ -1185,6 +1269,7 @@
     getMartialResearchCost,
     grantTreasureMap,
     useTreasureMap,
+    sellTreasureMap,
     digTreasure,
     runTreasureRound,
     runDungeon
