@@ -85,6 +85,7 @@ function redeemSectReward(type) { return window.__JH_GAME_ACTIONS__.redeemSectRe
 function toggleSectDutyHangup() { return window.__JH_GAME_ACTIONS__.toggleSectDutyHangup(); }
 function grantTreasureMap() { return window.__JH_GAME_ACTIONS__.grantTreasureMap(); }
 function useTreasureMap(idx) { return window.__JH_GAME_ACTIONS__.useTreasureMap(idx); }
+function sellTreasureMap(idx) { return window.__JH_GAME_ACTIONS__.sellTreasureMap(idx); }
 function digTreasure(idx) { return window.__JH_GAME_ACTIONS__.digTreasure(idx); }
 function runTreasureRound() { return window.__JH_GAME_ACTIONS__.runTreasureRound(); }
 function runDungeon(id) { return window.__JH_GAME_ACTIONS__.runDungeon(id); }
@@ -150,6 +151,7 @@ window.redeemSectReward = redeemSectReward;
 window.toggleSectDutyHangup = toggleSectDutyHangup;
 window.grantTreasureMap = grantTreasureMap;
 window.useTreasureMap = useTreasureMap;
+window.sellTreasureMap = sellTreasureMap;
 window.digTreasure = digTreasure;
 window.runTreasureRound = runTreasureRound;
 window.runDungeon = runDungeon;
