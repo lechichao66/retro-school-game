@@ -702,17 +702,17 @@
     }
     const moneyCost = getMartialResearchCost(skill, "resource");
     const expCost = 220 + currentLevel * 70;
-    if (player.money < moneyCost || player.exp < expCost) {
-      setNotice("error", `研习需要银两${moneyCost}与经验${expCost}。`);
+    if (player.money < moneyCost || (player.expReserve || 0) < expCost) {
+      setNotice("error", `研习需要银两${moneyCost}与经验池${expCost}。`);
       showSect();
       return;
     }
     player.money -= moneyCost;
-    player.exp -= expCost;
+    player.expReserve -= expCost;
     player.martial.levels[skillId] = currentLevel + 1;
-    addLog("event", `你研习【${skill.name}】并提升到 ${currentLevel + 1} 级，消耗银两${moneyCost}、经验${expCost}。`);
+    addLog("event", `你研习【${skill.name}】并提升到 ${currentLevel + 1} 级，消耗银两${moneyCost}、经验池${expCost}。`);
     updateAll();
-    setNotice("success", `${skill.name} 升至 ${currentLevel + 1} 级（消耗银两${moneyCost}、经验${expCost}）。`);
+    setNotice("success", `${skill.name} 升至 ${currentLevel + 1} 级（消耗银两${moneyCost}、经验池${expCost}）。`);
     showSect();
   }
 
@@ -1192,13 +1192,28 @@
   function debugSetLevel(level) {
     const targetLevel = Math.max(1, Math.floor(Number(level) || 1));
     player.level = targetLevel;
-    player.exp = 0;
+    player.expReserve = 0;
     player.hp = getMaxHp();
     player.mp = getMaxMp();
     setNotice("success", `调试成功：已设置为 ${targetLevel} 级。`);
     addLog("sys", `【调试】等级设为 ${targetLevel} 级。`);
     updateAll();
     if (currentView === "debug") showDebugPanel();
+  }
+
+  function manualLevelUp() {
+    const result = typeof tryManualLevelUp === "function" ? tryManualLevelUp() : { ok: false, reason: "unsupported" };
+    if (!result.ok) {
+      if (result.reason === "auto_phase") {
+        setNotice("info", "40级前为自动升级阶段，无需手动突破。");
+      } else if (result.reason === "exp_insufficient") {
+        setNotice("error", `经验池不足：手动突破需要 ${result.need || 0}。`);
+      } else {
+        setNotice("error", "当前版本不支持手动突破。");
+      }
+    }
+    updateAll();
+    if (currentView === "train") showTrain();
   }
 
   function debugAddMoney(amount) {
@@ -1215,7 +1230,9 @@
     if (!player.cultivation) player.cultivation = {};
     Object.keys(CULTIVATION_CONFIG).forEach((key) => {
       const cap = CULTIVATION_CONFIG[key].maxLevel;
-      player.cultivation[key] = Math.min(cap, (player.cultivation[key] || 0) + delta);
+      if (!player.cultivation[key] || typeof player.cultivation[key] !== "object") player.cultivation[key] = { level: 0, exp: 0 };
+      player.cultivation[key].level = Math.min(cap, (player.cultivation[key].level || 0) + delta);
+      if (player.cultivation[key].level >= cap) player.cultivation[key].exp = 0;
     });
     setNotice("success", `调试成功：全修炼提升 ${delta} 级（封顶受限）。`);
     addLog("sys", `【调试】全修炼 +${delta} 级。`);
@@ -1272,6 +1289,7 @@
     debugCultivateAll,
     debugFullRecover,
     debugGrantTestGear,
+    manualLevelUp,
     learnMartialSkill,
     trainMartialSkill,
     redeemSectReward,
@@ -1283,6 +1301,7 @@
     runTreasureRound,
     runDungeon
   };
+  g.manualLevelUp = manualLevelUp;
   g.getMartialResearchCost = getMartialResearchCost;
   ensureGrowthState();
   ensureHangup();

@@ -1,12 +1,13 @@
 (function initCultivationSystem(global) {
   const g = global || window;
 
+  const CULTIVATION_KEYS = ["attack", "defense", "hp", "mp", "resist"];
   const DEFAULT_CULTIVATION = Object.freeze({
-    attack: 0,
-    defense: 0,
-    hp: 0,
-    mp: 0,
-    resist: 0
+    attack: { level: 0, exp: 0 },
+    defense: { level: 0, exp: 0 },
+    hp: { level: 0, exp: 0 },
+    mp: { level: 0, exp: 0 },
+    resist: { level: 0, exp: 0 }
   });
 
   function safeLevel(value) {
@@ -17,11 +18,22 @@
 
   function createDefaultCultivation() {
     return {
-      attack: 0,
-      defense: 0,
-      hp: 0,
-      mp: 0,
-      resist: 0
+      attack: { level: 0, exp: 0 },
+      defense: { level: 0, exp: 0 },
+      hp: { level: 0, exp: 0 },
+      mp: { level: 0, exp: 0 },
+      resist: { level: 0, exp: 0 }
+    };
+  }
+
+  function normalizeCultivationNode(rawNode) {
+    if (typeof rawNode === "number") {
+      return { level: safeLevel(rawNode), exp: 0 };
+    }
+    if (!rawNode || typeof rawNode !== "object") return { level: 0, exp: 0 };
+    return {
+      level: safeLevel(rawNode.level),
+      exp: safeLevel(rawNode.exp)
     };
   }
 
@@ -29,8 +41,8 @@
     const next = createDefaultCultivation();
     if (!rawCultivation || typeof rawCultivation !== "object") return next;
 
-    Object.keys(next).forEach((key) => {
-      next[key] = safeLevel(rawCultivation[key]);
+    CULTIVATION_KEYS.forEach((key) => {
+      next[key] = normalizeCultivationNode(rawCultivation[key]);
     });
 
     return next;

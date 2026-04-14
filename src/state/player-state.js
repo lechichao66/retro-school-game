@@ -17,7 +17,8 @@
       vigor: { current: 100, max: 100 },
       lastRecoveryAt: Date.now(),
       money: 50,
-      exp: 0,
+      totalExp: 0,
+      expReserve: 0,
       level: 1,
 
       inventory: {
@@ -37,11 +38,11 @@
       },
 
       cultivation: {
-        attack: 0,
-        defense: 0,
-        hp: 0,
-        mp: 0,
-        resist: 0
+        attack: { level: 0, exp: 0 },
+        defense: { level: 0, exp: 0 },
+        hp: { level: 0, exp: 0 },
+        mp: { level: 0, exp: 0 },
+        resist: { level: 0, exp: 0 }
       },
 
       skills: ["ironSkin", "quickSlash"],
@@ -114,7 +115,8 @@
       mp: p.mp,
       maxMp: typeof g.getMaxMp === "function" ? g.getMaxMp() : p.mp,
       money: p.money,
-      exp: p.exp,
+      totalExp: p.totalExp || 0,
+      expReserve: p.expReserve || 0,
       level: p.level
     };
   }
