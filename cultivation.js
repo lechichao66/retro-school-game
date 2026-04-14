@@ -186,16 +186,13 @@ function upgradeCultivation(type) {
   }
 
   const moneyCost = getCultivationCost(type);
-  const expReserveCost = getCultivationExpCost(type);
-
-  if (player.money < moneyCost || (player.expReserve || 0) < expReserveCost) {
+  if (player.money < moneyCost) {
     addLog("error", `资源不足，无法提升${cfg.name}。`);
-    setNotice("error", `提升需要银两 ${moneyCost} 与经验池 ${expReserveCost}。`);
+    setNotice("error", `提升需要银两 ${moneyCost}。`);
     return false;
   }
 
   player.money -= moneyCost;
-  player.expReserve -= expReserveCost;
   node.exp = (node.exp || 0) + getCultivationStageConfig(currentLevel + 1).clickGainExp;
 
   let levelUps = 0;
@@ -209,7 +206,7 @@ function upgradeCultivation(type) {
   }
 
   if (levelUps > 0) {
-    addLog("event", `你潜心修炼，${cfg.name}提升至 ${node.level} 级，消耗银两 ${moneyCost}、经验池 ${expReserveCost}。`);
+    addLog("event", `你潜心修炼，${cfg.name}提升至 ${node.level} 级，消耗银两 ${moneyCost}。`);
     setNotice("success", `${cfg.name}提升成功！`);
   } else {
     addLog("event", `你修炼了${cfg.name}，进度提升（${node.exp}/${getCultivationUpgradeRequiredExp(type, currentLevel + 1)}）。`);
