@@ -87,6 +87,7 @@
 
   function ensureGrowthState() {
     if (!Array.isArray(player.treasureMaps)) player.treasureMaps = [];
+    if (!player.treasureLastRun || typeof player.treasureLastRun !== "object") player.treasureLastRun = null;
     if (!player.dungeonLastRun || typeof player.dungeonLastRun !== "object") player.dungeonLastRun = null;
     if (!player.assistantProfessions || typeof player.assistantProfessions !== "object") {
       player.assistantProfessions = { 炼药: 0, 打造: 0, 裁缝: 0, 厨师: 0 };
@@ -724,13 +725,8 @@
     ensureGrowthState();
     const map = player.treasureMaps[index];
     if (!map || map.used) return;
-    if (!consumeStamina(map.staminaCost || 10)) {
-      setNotice("error", "体力不足，无法使用宝图。");
-      showTreasure();
-      return;
-    }
     map.used = true;
-    addGameplayLog("treasure", `你研读了【${map.name}】，锁定了挖宝坐标。体力 -${map.staminaCost || 10}。`, "event");
+    addGameplayLog("treasure", `你研读了【${map.name}】，锁定了挖宝坐标。`, "event");
     setNotice("success", "宝图已启用，可执行挖宝。");
     showTreasure();
   }
@@ -758,6 +754,89 @@
     const rewardText = rewardTexts.length ? rewardTexts.join("，") : "无";
     setNotice("success", `挖宝成功：${rewardText}`);
     addGameplayLog("treasure", `宝图探索完成，结算奖励：${rewardText}。`, "success");
+    updateAll();
+    showTreasure();
+  }
+
+  function runTreasureRound() {
+    ensureGrowthState();
+    const mapIndex = player.treasureMaps.findIndex((x) => x && x.used);
+    if (mapIndex < 0) {
+      setNotice("error", "暂无已启用宝图，请先使用一张宝图后再进行一轮打图。");
+      showTreasure();
+      return;
+    }
+    const map = player.treasureMaps[mapIndex];
+    const attempts = 10;
+    const events = [
+      { id: "empty", weight: 28, type: "empty", text: "扑空一处疑似埋藏点。" },
+      { id: "findMoney", weight: 26, type: "money", text: "挖到散碎银两。" },
+      { id: "findItem", weight: 24, type: "item", text: "挖到残存包裹，发现材料。" },
+      { id: "trap", weight: 12, type: "damage", text: "触发机关，负伤撤离。" },
+      { id: "ambush", weight: 10, type: "encounter", text: "惊动守宝小怪，仓促交手。" }
+    ];
+    const pickEvent = () => {
+      const total = events.reduce((sum, e) => sum + e.weight, 0);
+      let roll = Math.random() * total;
+      for (let i = 0; i < events.length; i += 1) {
+        roll -= events[i].weight;
+        if (roll <= 0) return events[i];
+      }
+      return events[events.length - 1];
+    };
+    const pickRewardItem = () => {
+      const itemRewards = (map.rewards || []).filter((x) => x.type === "item" && x.name);
+      if (!itemRewards.length) return null;
+      return itemRewards[Math.floor(Math.random() * itemRewards.length)];
+    };
+
+    const eventCounter = { empty: 0, findMoney: 0, findItem: 0, trap: 0, ambush: 0 };
+    const rewardItems = {};
+    let totalMoney = 0;
+    let totalDamage = 0;
+
+    addGameplayLog("treasure", `你展开了【${map.name}】的一轮打图（共${attempts}次）。`, "event");
+
+    for (let i = 0; i < attempts; i += 1) {
+      const ev = pickEvent();
+      eventCounter[ev.id] += 1;
+      if (ev.type === "money") {
+        const baseMoney = Math.max(10, Math.round(((map.rewards || []).find((x) => x.type === "money")?.value || 60) * (0.2 + Math.random() * 0.6)));
+        player.money += baseMoney;
+        totalMoney += baseMoney;
+      } else if (ev.type === "item") {
+        const itemCfg = pickRewardItem();
+        if (itemCfg) {
+          const count = Math.max(1, Math.round(Number(itemCfg.value || 1) * (Math.random() < 0.3 ? 2 : 1)));
+          addItem(itemCfg.name, count);
+          rewardItems[itemCfg.name] = (rewardItems[itemCfg.name] || 0) + count;
+        }
+      } else if (ev.type === "damage" || ev.type === "encounter") {
+        const hpLoss = ev.type === "damage" ? 4 + Math.floor(Math.random() * 4) : 2 + Math.floor(Math.random() * 4);
+        loseHp(hpLoss);
+        totalDamage += hpLoss;
+      }
+      addGameplayLog("treasure", `【第${i + 1}次】${ev.text}`, ev.type === "damage" ? "error" : "event");
+    }
+
+    player.treasureMaps.splice(mapIndex, 1);
+    const itemText = Object.keys(rewardItems).length
+      ? Object.keys(rewardItems).map((name) => `${name} x${rewardItems[name]}`).join("，")
+      : "无";
+    player.treasureLastRun = {
+      time: typeof getNowTime === "function" ? getNowTime() : "",
+      mapId: map.id || "",
+      mapName: map.name || "未知宝图",
+      area: map.area || "未知地点",
+      attempts,
+      eventCounter,
+      rewards: { money: totalMoney, items: rewardItems },
+      hpLoss: totalDamage,
+      summaryText: `银两+${totalMoney}，物品：${itemText}，受伤-${totalDamage}。`
+    };
+
+    addGameplayLog("treasure", `本轮打图结束：${player.treasureLastRun.summaryText}`, "success");
+    setNotice("success", `打图完成：银两+${totalMoney}，受伤-${totalDamage}。`);
     updateAll();
     showTreasure();
   }
@@ -1100,6 +1179,7 @@
     grantTreasureMap,
     useTreasureMap,
     digTreasure,
+    runTreasureRound,
     runDungeon
   };
   g.getMartialResearchCost = getMartialResearchCost;

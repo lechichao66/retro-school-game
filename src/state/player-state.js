@@ -69,6 +69,7 @@
         sectHangup: [],
         economy: []
       },
+      treasureLastRun: null,
       dungeonLastRun: null,
       trade: {
         selectedRouteId: "novice_loop"
