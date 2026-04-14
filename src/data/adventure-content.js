@@ -2,9 +2,24 @@ window.__JH_DATA__ = window.__JH_DATA__ || {};
 
 window.__JH_DATA__.treasureMapTemplates = [
   {
-    id: "map_newbie_hill",
+    id: "map_newbie_outskirts",
+    tier: "normal",
+    name: "残旧宝图·新手村",
+    targetMap: "新手村",
+    area: "新手村周边",
+    staminaCost: 10,
+    encounterRate: 0.28,
+    rewards: [
+      { type: "money", value: 80 },
+      { type: "item", name: "粗布", value: 1 },
+      { type: "item", name: "小还丹", value: 1 }
+    ]
+  },
+  {
+    id: "map_houshan_forest",
     tier: "normal",
     name: "残旧宝图·后山",
+    targetMap: "后山密林",
     area: "后山密林",
     staminaCost: 12,
     encounterRate: 0.4,
@@ -12,6 +27,48 @@ window.__JH_DATA__.treasureMapTemplates = [
       { type: "money", value: 90 },
       { type: "item", name: "精铁", value: 1 },
       { type: "item", name: "小还丹", value: 1 }
+    ]
+  },
+  {
+    id: "map_luoyan_slope",
+    tier: "normal",
+    name: "残旧宝图·落雁坡",
+    targetMap: "落雁坡",
+    area: "落雁坡",
+    staminaCost: 14,
+    encounterRate: 0.42,
+    rewards: [
+      { type: "money", value: 100 },
+      { type: "item", name: "精铁", value: 1 },
+      { type: "item", name: "熊胆", value: 1 }
+    ]
+  },
+  {
+    id: "map_beast_valley",
+    tier: "normal",
+    name: "残旧宝图·百兽谷",
+    targetMap: "百兽谷",
+    area: "百兽谷",
+    staminaCost: 16,
+    encounterRate: 0.45,
+    rewards: [
+      { type: "money", value: 110 },
+      { type: "item", name: "鳄皮", value: 1 },
+      { type: "item", name: "熊胆", value: 1 }
+    ]
+  },
+  {
+    id: "map_under_palace",
+    tier: "normal",
+    name: "残旧宝图·地宫",
+    targetMap: "幽冥地宫",
+    area: "幽冥地宫",
+    staminaCost: 18,
+    encounterRate: 0.48,
+    rewards: [
+      { type: "money", value: 120 },
+      { type: "item", name: "伤寒论残页", value: 1 },
+      { type: "item", name: "大还丹", value: 1 }
     ]
   }
 ];
@@ -33,7 +90,8 @@ window.__JH_DATA__.treasureSystemConfig = {
   },
   round: {
     attemptsPerRound: 10,
-    dailyRoundLimit: 12,
+    normalMapFixedDropCount: 7,
+    dailyRoundLimit: 50,
     guaranteedMinSilver: 12000,
     eventWeights: {
       empty: 24,

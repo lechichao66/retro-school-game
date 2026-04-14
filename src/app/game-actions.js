@@ -826,7 +826,7 @@
     const mapTemplates = g.__JH_DATA__?.treasureMapTemplates || [];
     const roundCfg = getTreasureRoundConfig();
     const attempts = Math.max(1, Math.floor(Number(roundCfg.attemptsPerRound) || 10));
-    const dailyRoundLimit = Math.max(1, Math.floor(Number(roundCfg.dailyRoundLimit) || 12));
+    const dailyRoundLimit = Math.max(1, Math.floor(Number(roundCfg.dailyRoundLimit) || 50));
     if ((player.treasureDaily.rounds || 0) >= dailyRoundLimit) {
       setNotice("error", `今日打图轮次已达上限（${dailyRoundLimit}轮）。`);
       addGameplayLog("treasure", `你尝试继续打图，但今日轮次已满（${dailyRoundLimit}轮）。`, "event");
@@ -838,7 +838,6 @@
       { id: "empty", weight: Number(eventWeights.empty) || 24, type: "empty", text: "扑空一处疑似埋藏点。" },
       { id: "findMoney", weight: Number(eventWeights.findMoney) || 30, type: "money", text: "挖到散碎银两。" },
       { id: "findItem", weight: Number(eventWeights.findItem) || 22, type: "item", text: "挖到残存包裹，发现材料。" },
-      { id: "mapDrop", weight: Number(eventWeights.mapDrop) || 14, type: "mapDrop", text: "循迹追踪后，你找到了一张残页宝图。" },
       { id: "trap", weight: Number(eventWeights.trap) || 6, type: "damage", text: "触发机关，负伤撤离。" },
       { id: "ambush", weight: Number(eventWeights.ambush) || 4, type: "encounter", text: "惊动守宝小怪，仓促交手。" }
     ];
@@ -868,9 +867,25 @@
     let totalMoney = 0;
     let totalDamage = 0;
 
-    addGameplayLog("treasure", `你开始了一轮打图（共${attempts}次），目标是搜索线索并尝试获得宝图。`, "event");
+    const normalMapFixedDropCount = Math.max(0, Math.floor(Number(roundCfg.normalMapFixedDropCount) || 7));
+    const mapDropCount = Math.min(attempts, normalMapFixedDropCount);
+    const otherAttempts = Math.max(0, attempts - mapDropCount);
 
-    for (let i = 0; i < attempts; i += 1) {
+    addGameplayLog("treasure", `你开始了一轮打图（共${attempts}次），本轮固定产出普通宝图${mapDropCount}张，其余${otherAttempts}次用于事件结算。`, "event");
+
+    for (let i = 0; i < mapDropCount; i += 1) {
+      eventCounter.mapDrop += 1;
+      const droppedMap = buildDroppedMap();
+      if (droppedMap) {
+        player.treasureMaps.push(droppedMap);
+        rewardMaps.push(droppedMap.name || "残页宝图");
+        addGameplayLog("treasure", `【第${i + 1}次】循迹追踪后，你稳定找到一张普通宝图（${droppedMap.name || "残页宝图"}）。`, "event");
+      } else {
+        addGameplayLog("treasure", `【第${i + 1}次】循迹追踪后，你确认了宝图线索，但未找到可用模板。`, "event");
+      }
+    }
+
+    for (let i = 0; i < otherAttempts; i += 1) {
       const ev = pickEvent();
       eventCounter[ev.id] += 1;
       if (ev.type === "money") {
@@ -887,18 +902,12 @@
           addItem(itemCfg.name, count);
           rewardItems[itemCfg.name] = (rewardItems[itemCfg.name] || 0) + count;
         }
-      } else if (ev.type === "mapDrop") {
-        const droppedMap = buildDroppedMap();
-        if (droppedMap) {
-          player.treasureMaps.push(droppedMap);
-          rewardMaps.push(droppedMap.name || "残页宝图");
-        }
       } else if (ev.type === "damage" || ev.type === "encounter") {
         const hpLoss = ev.type === "damage" ? 4 + Math.floor(Math.random() * 4) : 2 + Math.floor(Math.random() * 4);
         loseHp(hpLoss);
         totalDamage += hpLoss;
       }
-      addGameplayLog("treasure", `【第${i + 1}次】${ev.text}`, ev.type === "damage" ? "error" : "event");
+      addGameplayLog("treasure", `【第${mapDropCount + i + 1}次】${ev.text}`, ev.type === "damage" ? "error" : "event");
     }
 
     const guaranteedRoundSilver = Math.max(0, Math.floor(Number(roundCfg.guaranteedMinSilver) || 12000));
