@@ -38,6 +38,107 @@
     martialRef.activeSkill = martialRef.equipped.wugong || "basic_fist";
   }
 
+
+  function getDefaultEquipLevelBands() {
+    return {
+      order: ["L10", "L20", "L30", "L40", "L50", "L60", "L70", "L80", "L90+"],
+      bands: {
+        L10: { minLevel: 1, maxLevel: 19, label: "10级段" },
+        L20: { minLevel: 20, maxLevel: 29, label: "20级段" },
+        L30: { minLevel: 30, maxLevel: 39, label: "30级段" },
+        L40: { minLevel: 40, maxLevel: 49, label: "40级段" },
+        L50: { minLevel: 50, maxLevel: 59, label: "50级段" },
+        L60: { minLevel: 60, maxLevel: 69, label: "60级段" },
+        L70: { minLevel: 70, maxLevel: 79, label: "70级段" },
+        L80: { minLevel: 80, maxLevel: 89, label: "80级段" },
+        "L90+": { minLevel: 90, maxLevel: 999, label: "90级以上" }
+      }
+    };
+  }
+
+  function resolveEquipLevelBand(requiredLevel) {
+    const levelCfg = g.__JH_DATA__?.equipLevelBands || getDefaultEquipLevelBands();
+    const order = Array.isArray(levelCfg.order) ? levelCfg.order : [];
+    const bands = levelCfg.bands || {};
+    const lv = Math.max(1, Math.floor(Number(requiredLevel) || 1));
+    for (let i = 0; i < order.length; i += 1) {
+      const key = order[i];
+      const band = bands[key];
+      if (!band) continue;
+      const min = Math.floor(Number(band.minLevel) || 1);
+      const max = Math.floor(Number(band.maxLevel) || min);
+      if (lv >= min && lv <= max) return { key, band };
+    }
+    return { key: "L90+", band: bands["L90+"] || { minLevel: 90, maxLevel: 999, label: "90级以上" } };
+  }
+
+  function ensureEquipDataCompatibility() {
+    const equipData = g.__JH_DATA__?.equipData;
+    const qualityCfg = g.__JH_DATA__?.equipQualityConfig || {};
+    if (!equipData || typeof equipData !== "object") return;
+
+    Object.keys(equipData).forEach((name) => {
+      const equip = equipData[name];
+      if (!equip || typeof equip !== "object") return;
+
+      const quality = typeof equip.quality === "string" ? equip.quality : "common";
+      const qualityMeta = qualityCfg[quality] || qualityCfg.common || {};
+      const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || Number(qualityMeta.levelProfile?.defaultRequiredLevel) || 40));
+      const { key: levelBand, band } = resolveEquipLevelBand(requiredLevel);
+      const baseStats = equip.baseStats && typeof equip.baseStats === "object" ? equip.baseStats : {};
+
+      equip.schemaVersion = Math.max(1, Math.floor(Number(equip.schemaVersion) || 1));
+      if (typeof equip.id !== "string" || !equip.id) equip.id = `equip_${String(name).replace(/\s+/g, "_")}`;
+      if (typeof equip.name !== "string" || !equip.name) equip.name = name;
+      equip.quality = quality;
+      equip.qualityRank = Math.max(1, Number(equip.qualityRank) || Number(qualityMeta.rank) || 1);
+      if (typeof equip.slot !== "string" || !equip.slot) equip.slot = "weapon";
+      if (typeof equip.slotType !== "string" || !equip.slotType) equip.slotType = equip.slot;
+      if (typeof equip.slotGroup !== "string" || !equip.slotGroup) equip.slotGroup = equip.slot === "artifact" ? "reserved" : "core";
+
+      equip.requiredLevel = requiredLevel;
+      equip.levelBand = typeof equip.levelBand === "string" && equip.levelBand ? equip.levelBand : levelBand;
+      if (typeof equip.levelBandLabel !== "string" || !equip.levelBandLabel) equip.levelBandLabel = band.label || levelBand;
+      equip.levelMin = Math.floor(Number(equip.levelMin) || Number(band.minLevel) || requiredLevel);
+      equip.levelMax = Math.floor(Number(equip.levelMax) || Number(band.maxLevel) || requiredLevel);
+
+      equip.baseStats = {
+        attack: Number(baseStats.attack ?? equip.attack ?? 0) || 0,
+        defense: Number(baseStats.defense ?? equip.defense ?? 0) || 0
+      };
+      equip.attack = equip.baseStats.attack;
+      equip.defense = equip.baseStats.defense;
+
+      if (!Array.isArray(equip.affixes)) equip.affixes = [];
+      equip.affixes = equip.affixes.map((affix, idx) => ({
+        key: affix?.key || `affix_${idx + 1}`,
+        name: affix?.name || "未命名词条",
+        value: Number(affix?.value) || 0,
+        valueType: affix?.valueType || "flat",
+        tier: Math.max(1, Math.floor(Number(affix?.tier) || 1)),
+        tags: Array.isArray(affix?.tags) ? affix.tags : []
+      }));
+
+      if (!Number.isFinite(Number(equip.affixSlots))) equip.affixSlots = Number(qualityMeta.affixPoolSize) || 0;
+      if (!Number.isFinite(Number(equip.enhanceLevel))) equip.enhanceLevel = 0;
+      if (!Array.isArray(equip.specialEffects)) equip.specialEffects = [];
+      if (!equip.extraStats || typeof equip.extraStats !== "object") equip.extraStats = {};
+
+      if (!equip.valueProfile || typeof equip.valueProfile !== "object") equip.valueProfile = {};
+      equip.valueProfile.baseValue = Math.max(1, Math.floor(Number(equip.valueProfile.baseValue) || 100));
+      equip.valueProfile.valueMultiplier = Number(equip.valueProfile.valueMultiplier) || Number(qualityMeta.economy?.baseValueMultiplier) || 1;
+      equip.valueProfile.sellMultiplier = Number(equip.valueProfile.sellMultiplier) || Number(qualityMeta.economy?.sellMultiplier) || 0.22;
+
+      if (!Array.isArray(equip.tags)) equip.tags = [];
+      if (!equip.reserved || typeof equip.reserved !== "object") equip.reserved = {};
+      if (!("accessorySlot" in equip.reserved)) equip.reserved.accessorySlot = null;
+      if (!("talismanSlot" in equip.reserved)) equip.reserved.talismanSlot = null;
+      if (!("artifactPath" in equip.reserved)) equip.reserved.artifactPath = null;
+      if (!Array.isArray(equip.reserved.triggerHooks)) equip.reserved.triggerHooks = [];
+      if (typeof equip.desc !== "string") equip.desc = "";
+    });
+  }
+
   function getDefaultTradeState() {
     const defaultRouteId = g.__JH_DATA__?.tradeRoutes?.defaultRouteId || "novice_loop";
     return {
@@ -127,6 +228,7 @@
       if (typeof playerRef.equips[slot] !== "string") playerRef.equips[slot] = "";
     });
 
+    ensureEquipDataCompatibility();
     ensureExpFields(playerRef);
 
     if (g.__JH_CULTIVATION_SYSTEM__ && typeof g.__JH_CULTIVATION_SYSTEM__.ensurePlayerCultivation === "function") {
