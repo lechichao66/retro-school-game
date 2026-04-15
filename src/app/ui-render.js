@@ -561,7 +561,10 @@
       : [];
     const extraStats = extraEntries.length ? extraEntries : [];
     const slotText = slotLabels[equip.slot] || equip.slot || "未知";
-    const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || 1));
+    const levelContext = typeof resolveEquipLevelContext === "function"
+      ? resolveEquipLevelContext(equip)
+      : { requiredLevel: Math.max(1, Math.floor(Number(equip.requiredLevel) || 1)) };
+    const requiredLevel = levelContext.requiredLevel;
     const specialEffectsHtml = effects.length
       ? effects.map((x) => {
         const effectText = getSpecialEffectText(x);
@@ -623,7 +626,10 @@
     const quality = getEquipQualityMeta(equip.quality);
     const baseAttack = equip.baseStats?.attack || equip.attack || 0;
     const baseDefense = equip.baseStats?.defense || equip.defense || 0;
-    const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || 1));
+    const levelContext = typeof resolveEquipLevelContext === "function"
+      ? resolveEquipLevelContext(equip)
+      : { requiredLevel: Math.max(1, Math.floor(Number(equip.requiredLevel) || 1)) };
+    const requiredLevel = levelContext.requiredLevel;
     const extraEntries = equip.extraStats && typeof equip.extraStats === "object"
       ? Object.entries(equip.extraStats).filter(([, v]) => Number(v) !== 0)
       : [];

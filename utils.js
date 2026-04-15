@@ -433,9 +433,10 @@ function getEquipSellPrice(name) {
   const bandCfg = levelCfg.bands || {};
   const bandOrder = Array.isArray(levelCfg.order) ? levelCfg.order : [];
   const baseByBand = levelCfg.sellPriceBaseByBand || {};
-  const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || 1));
-  const bandKey = equip.levelBand && bandCfg[equip.levelBand]
-    ? equip.levelBand
+  const levelContext = resolveEquipLevelContext(equip);
+  const requiredLevel = levelContext.requiredLevel;
+  const bandKey = levelContext.levelBand && bandCfg[levelContext.levelBand]
+    ? levelContext.levelBand
     : resolveEquipSellBand(requiredLevel, bandOrder, bandCfg);
   const fallbackBand = bandOrder.includes("L40") ? "L40" : (bandOrder[0] || "L10");
   const resolvedBand = bandKey || fallbackBand;
@@ -460,6 +461,44 @@ function resolveEquipSellBand(level, order, bands) {
     if (lv >= min && lv <= max) return key;
   }
   return safeOrder[safeOrder.length - 1] || "L90+";
+}
+
+function resolveEquipLevelContext(equip) {
+  const target = equip && typeof equip === "object" ? equip : {};
+  const levelCfg = window.__JH_DATA__?.equipLevelBands || {};
+  const bandCfg = levelCfg.bands || {};
+  const bandOrder = Array.isArray(levelCfg.order) ? levelCfg.order : [];
+  const qualityMeta = getEquipQualityMeta(target.quality);
+
+  const explicitBand = typeof target.levelBand === "string" && bandCfg[target.levelBand]
+    ? target.levelBand
+    : "";
+  const explicitRequiredLevel = Number.isFinite(Number(target.requiredLevel))
+    ? Math.max(1, Math.floor(Number(target.requiredLevel)))
+    : 0;
+  const legacyQualityLevel = Number.isFinite(Number(qualityMeta?.levelProfile?.defaultRequiredLevel))
+    ? Math.max(1, Math.floor(Number(qualityMeta.levelProfile.defaultRequiredLevel)))
+    : 0;
+
+  const fallbackBand = bandOrder.includes("L40") ? "L40" : (bandOrder[0] || "L10");
+  const resolvedBand = explicitBand
+    || (explicitRequiredLevel > 0 ? resolveEquipSellBand(explicitRequiredLevel, bandOrder, bandCfg) : fallbackBand);
+  const resolvedBandCfg = bandCfg[resolvedBand] || {};
+  const bandMin = Math.max(1, Math.floor(Number(resolvedBandCfg.minLevel) || 1));
+  const bandMax = Math.max(bandMin, Math.floor(Number(resolvedBandCfg.maxLevel) || bandMin));
+
+  const isRequiredInBand = explicitRequiredLevel > 0 && explicitRequiredLevel >= bandMin && explicitRequiredLevel <= bandMax;
+  const resolvedRequiredLevel = explicitRequiredLevel > 0
+    ? (explicitBand && !isRequiredInBand ? bandMin : explicitRequiredLevel)
+    : (bandMin || legacyQualityLevel || 1);
+
+  return {
+    requiredLevel: Math.max(1, resolvedRequiredLevel),
+    levelBand: resolvedBand,
+    levelBandLabel: resolvedBandCfg.label || resolvedBand,
+    levelMin: bandMin,
+    levelMax: bandMax
+  };
 }
 
 function getItemDetailText(name) {
