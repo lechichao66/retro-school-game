@@ -553,13 +553,16 @@
       necklace: "项链",
       artifact: "法宝"
     };
-    const baseAttack = equip.baseStats?.attack || equip.attack || 0;
-    const baseDefense = equip.baseStats?.defense || equip.defense || 0;
+    const baseAttack = Number(equip.baseStats?.attack ?? equip.attack ?? 0) || 0;
+    const baseDefense = Number(equip.baseStats?.defense ?? equip.defense ?? 0) || 0;
     const effects = Array.isArray(equip.specialEffects) ? equip.specialEffects : [];
     const extraEntries = equip.extraStats && typeof equip.extraStats === "object"
       ? Object.entries(equip.extraStats).filter(([, v]) => Number(v) !== 0)
       : [];
     const extraStats = extraEntries.length ? extraEntries : [];
+    const baseStatLines = [];
+    if (baseAttack !== 0) baseStatLines.push(`<div class="list-line">攻击 +${baseAttack}</div>`);
+    if (baseDefense !== 0) baseStatLines.push(`<div class="list-line">防御 +${baseDefense}</div>`);
     const slotText = slotLabels[equip.slot] || equip.slot || "未知";
     const levelContext = typeof resolveEquipLevelContext === "function"
       ? resolveEquipLevelContext(equip)
@@ -584,8 +587,7 @@
       </div>
       <div class="equip-detail-block">
         <div class="list-line"><b>基础属性</b></div>
-        <div class="list-line">攻击 +${baseAttack}</div>
-        <div class="list-line">防御 +${baseDefense}</div>
+        ${baseStatLines.length ? baseStatLines.join("") : "<div class='list-line'>无</div>"}
       </div>
       <div class="equip-detail-block">
         <div class="list-line"><b>附加属性</b></div>
@@ -624,8 +626,8 @@
 
     const compact = options.compact !== false;
     const quality = getEquipQualityMeta(equip.quality);
-    const baseAttack = equip.baseStats?.attack || equip.attack || 0;
-    const baseDefense = equip.baseStats?.defense || equip.defense || 0;
+    const baseAttack = Number(equip.baseStats?.attack ?? equip.attack ?? 0) || 0;
+    const baseDefense = Number(equip.baseStats?.defense ?? equip.defense ?? 0) || 0;
     const levelContext = typeof resolveEquipLevelContext === "function"
       ? resolveEquipLevelContext(equip)
       : { requiredLevel: Math.max(1, Math.floor(Number(equip.requiredLevel) || 1)) };
@@ -644,6 +646,10 @@
     const extraText = extraEntries.length
       ? extraEntries.map(([k, v]) => `${getStatLabel(k)}+${v}`).join("，")
       : "无";
+    const baseStatsText = [
+      baseAttack !== 0 ? `攻击 +${baseAttack}` : "",
+      baseDefense !== 0 ? `防御 +${baseDefense}` : ""
+    ].filter(Boolean).join(" / ") || "无";
 
     return `
       <div class="equip-tooltip-block">
@@ -654,7 +660,7 @@
       </div>
       <div class="equip-tooltip-block">
         <div class="equip-tooltip-subtitle">基础属性</div>
-        <div class="equip-tooltip-line">攻击 +${baseAttack} / 防御 +${baseDefense}</div>
+        <div class="equip-tooltip-line">${baseStatsText}</div>
       </div>
       ${compact ? "" : `
       <div class="equip-tooltip-block">

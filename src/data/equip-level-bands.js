@@ -4,6 +4,45 @@ window.__JH_DATA__.equipLevelBands = {
   version: 1,
   order: ["L10", "L20", "L30", "L40", "L50", "L60", "L70", "L80", "L90+"],
   mainstreamRange: { minLevel: 40, maxLevel: 80 },
+  baseStatAnchors: {
+    weaponAttack: {
+      L40: { min: 120, max: 160 },
+      L50: { min: 180, max: 240 },
+      L60: { min: 260, max: 340 },
+      L70: { min: 360, max: 470 },
+      L80: { min: 500, max: 650 }
+    },
+    armorDefenseBySlot: {
+      armor: {
+        L40: { min: 70, max: 95 },
+        L50: { min: 105, max: 140 },
+        L60: { min: 150, max: 200 },
+        L70: { min: 210, max: 280 },
+        L80: { min: 300, max: 390 }
+      },
+      hat: {
+        L40: { min: 50, max: 70 },
+        L50: { min: 75, max: 105 },
+        L60: { min: 110, max: 150 },
+        L70: { min: 155, max: 210 },
+        L80: { min: 220, max: 300 }
+      },
+      belt: {
+        L40: { min: 35, max: 50 },
+        L50: { min: 55, max: 78 },
+        L60: { min: 80, max: 115 },
+        L70: { min: 120, max: 170 },
+        L80: { min: 180, max: 250 }
+      },
+      shoes: {
+        L40: { min: 20, max: 32 },
+        L50: { min: 32, max: 50 },
+        L60: { min: 48, max: 72 },
+        L70: { min: 70, max: 105 },
+        L80: { min: 100, max: 145 }
+      }
+    }
+  },
   sellPriceBaseByBand: {
     L10: 1000,
     L20: 2000,

@@ -46,6 +46,24 @@ function createEquipQualityMeta(config) {
 }
 
 window.__JH_DATA__.equipQualityConfig = {
+  tierDisplayOrder: ["common", "fine", "refined", "rare", "legend", "immortal"],
+  tierDisplayNames: {
+    common: "普通",
+    fine: "优质",
+    refined: "精品",
+    rare: "稀有",
+    legend: "传说",
+    immortal: "仙品"
+  },
+  legacyKeyAlias: {
+    common: "common",
+    fine: "fine",
+    refined: "fine",
+    rare: "rare",
+    epic: "rare",
+    legend: "legend",
+    immortal: "legend"
+  },
   common: createEquipQualityMeta({
     key: "common", name: "凡品", rank: 1, color: "#9ca3af",
     statMultiplier: 1.00, affixPoolSize: 0, enhanceCap: 5,
