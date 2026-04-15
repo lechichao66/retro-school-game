@@ -392,17 +392,74 @@ function getItemBasePrice(name) {
 
 function getItemSellPrice(name) {
   const cfg = window.__JH_DATA__?.inventorySaleConfig || {};
-  const typeRates = cfg.sellRateByType || {};
   const type = getItemTypeText(name);
   const itemCfg = (typeof itemData !== "undefined" && itemData[name]) ? itemData[name] : null;
   const fixed = Number(itemCfg?.sellPrice ?? itemCfg?.price ?? 0) || 0;
   if (fixed > 0) return Math.max(1, Math.floor(fixed));
 
+  if (type === "装备") {
+    return getEquipSellPrice(name);
+  }
+
+  const shopPrice = Array.isArray(shopItems) ? Number(shopItems.find((x) => x.name === name)?.price || 0) : 0;
+  if (type === "消耗品") {
+    const typeRates = cfg.sellRateByType || {};
+    const consumeRate = Number(typeRates["消耗品"]);
+    const finalRate = Number.isFinite(consumeRate) ? consumeRate : (Number(cfg.defaultSellRate) || 0.45);
+    const consumeBase = shopPrice > 0
+      ? shopPrice
+      : (Number(itemCfg?.basePrice) || getItemBasePrice(name));
+    return Math.max(1, Math.floor(consumeBase * finalRate));
+  }
+
+  if (type === "材料") {
+    const materialBase = Number(itemCfg?.basePrice) || getItemBasePrice(name);
+    return Math.max(1, Math.floor(materialBase));
+  }
+
+  const typeRates = cfg.sellRateByType || {};
   const basePrice = getItemBasePrice(name);
   const globalRate = Number(cfg.defaultSellRate) || 0.45;
   const typeRate = Number(typeRates[type]);
   const finalRate = Number.isFinite(typeRate) ? typeRate : globalRate;
   return Math.max(1, Math.floor(basePrice * finalRate));
+}
+
+function getEquipSellPrice(name) {
+  const equip = (typeof equipData !== "undefined" && equipData[name]) ? equipData[name] : null;
+  if (!equip) return 1;
+
+  const levelCfg = window.__JH_DATA__?.equipLevelBands || {};
+  const bandCfg = levelCfg.bands || {};
+  const bandOrder = Array.isArray(levelCfg.order) ? levelCfg.order : [];
+  const baseByBand = levelCfg.sellPriceBaseByBand || {};
+  const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || 1));
+  const bandKey = equip.levelBand && bandCfg[equip.levelBand]
+    ? equip.levelBand
+    : resolveEquipSellBand(requiredLevel, bandOrder, bandCfg);
+  const fallbackBand = bandOrder[0] || "L10";
+  const resolvedBand = bandKey || fallbackBand;
+  const levelBandBasePrice = Math.max(1, Math.floor(Number(baseByBand[resolvedBand]) || 1000));
+
+  const qualityMeta = getEquipQualityMeta(equip.quality);
+  const gradeSellMultiplier = Number(qualityMeta?.economy?.gradeSellMultiplier);
+  const fallbackMultiplier = Number(qualityMeta?.economy?.sellMultiplier) || 1;
+  const multiplier = Number.isFinite(gradeSellMultiplier) ? gradeSellMultiplier : fallbackMultiplier;
+  return Math.max(1, Math.floor(levelBandBasePrice * multiplier));
+}
+
+function resolveEquipSellBand(level, order, bands) {
+  const lv = Math.max(1, Math.floor(Number(level) || 1));
+  const safeOrder = Array.isArray(order) ? order : [];
+  for (let i = 0; i < safeOrder.length; i += 1) {
+    const key = safeOrder[i];
+    const band = bands?.[key];
+    if (!band) continue;
+    const min = Math.max(1, Math.floor(Number(band.minLevel) || 1));
+    const max = Math.max(min, Math.floor(Number(band.maxLevel) || min));
+    if (lv >= min && lv <= max) return key;
+  }
+  return safeOrder[safeOrder.length - 1] || "L90+";
 }
 
 function getItemDetailText(name) {
