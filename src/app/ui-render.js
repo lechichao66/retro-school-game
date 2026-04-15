@@ -383,7 +383,7 @@
           ? getEquipTooltipHtml(name, { compact: false })
           : `<div class="equip-tooltip-block"><div class="equip-tooltip-line">${getItemDetailText(name)}</div></div>`;
         const nameCellHtml = equipInfo
-          ? `<span class="equip-tooltip-anchor">${equipInfo.titleHtml}<span class="equip-tooltip-panel">${quickTooltip}</span></span>`
+          ? `<span class="equip-tooltip-anchor bag-equip-tooltip-trigger" data-tooltip-html="${encodeURIComponent(quickTooltip)}">${equipInfo.titleHtml}</span>`
           : `<b title="${getItemDetailText(name)}">${name}</b>`;
         return `
           <tr>
@@ -430,6 +430,67 @@
         </table>
       </div>
     `);
+    bindBagEquipTooltips();
+  }
+
+  function ensureBagTooltipLayer() {
+    let layer = document.getElementById("bagTooltipLayer");
+    if (layer) return layer;
+    layer = document.createElement("div");
+    layer.id = "bagTooltipLayer";
+    layer.className = "equip-tooltip-panel bag-tooltip-layer";
+    layer.setAttribute("aria-hidden", "true");
+    document.body.appendChild(layer);
+    return layer;
+  }
+
+  function hideBagTooltipLayer() {
+    const layer = document.getElementById("bagTooltipLayer");
+    if (!layer) return;
+    layer.classList.remove("is-visible");
+    layer.innerHTML = "";
+    layer.style.left = "-9999px";
+    layer.style.top = "-9999px";
+  }
+
+  function bindBagEquipTooltips() {
+    hideBagTooltipLayer();
+    const triggers = Array.from(document.querySelectorAll(".bag-equip-tooltip-trigger"));
+    if (!triggers.length) return;
+    const layer = ensureBagTooltipLayer();
+
+    const renderLayerAt = (trigger) => {
+      const raw = trigger.getAttribute("data-tooltip-html") || "";
+      layer.innerHTML = decodeURIComponent(raw);
+      layer.classList.add("is-visible");
+      layer.style.left = "-9999px";
+      layer.style.top = "-9999px";
+
+      const rect = trigger.getBoundingClientRect();
+      const layerRect = layer.getBoundingClientRect();
+      const margin = 10;
+      const maxLeft = window.innerWidth - layerRect.width - margin;
+      const left = Math.max(margin, Math.min(rect.left, maxLeft));
+      const belowTop = rect.bottom + 8;
+      const aboveTop = rect.top - layerRect.height - 8;
+      const top = (belowTop + layerRect.height + margin <= window.innerHeight || aboveTop < margin)
+        ? belowTop
+        : aboveTop;
+      layer.style.left = `${Math.round(left + window.scrollX)}px`;
+      layer.style.top = `${Math.round(top + window.scrollY)}px`;
+    };
+
+    triggers.forEach((trigger) => {
+      trigger.addEventListener("mouseenter", () => renderLayerAt(trigger));
+      trigger.addEventListener("mouseleave", hideBagTooltipLayer);
+      trigger.addEventListener("focus", () => renderLayerAt(trigger));
+      trigger.addEventListener("blur", hideBagTooltipLayer);
+    });
+    if (!g.__bagTooltipGlobalBindDone) {
+      window.addEventListener("scroll", hideBagTooltipLayer, { passive: true });
+      window.addEventListener("resize", hideBagTooltipLayer, { passive: true });
+      g.__bagTooltipGlobalBindDone = true;
+    }
   }
 
   function showEquip() {
