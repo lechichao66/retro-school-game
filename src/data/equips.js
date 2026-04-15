@@ -5,26 +5,125 @@ function getEquipQualityColor(quality, fallback) {
   return cfg[quality]?.color || fallback || "#9ca3af";
 }
 
+function getEquipQualityMeta(quality) {
+  const cfg = window.__JH_DATA__?.equipQualityConfig || {};
+  return cfg[quality] || cfg.common || { key: "common", rank: 1, levelProfile: { defaultRequiredLevel: 40, preferredBand: "L40" }, economy: { sellMultiplier: 0.22 } };
+}
+
+function getEquipLevelBandConfig() {
+  const fallback = {
+    order: ["L10", "L20", "L30", "L40", "L50", "L60", "L70", "L80", "L90+"],
+    bands: {
+      L10: { key: "L10", minLevel: 1, maxLevel: 19, label: "10级段" },
+      L20: { key: "L20", minLevel: 20, maxLevel: 29, label: "20级段" },
+      L30: { key: "L30", minLevel: 30, maxLevel: 39, label: "30级段" },
+      L40: { key: "L40", minLevel: 40, maxLevel: 49, label: "40级段" },
+      L50: { key: "L50", minLevel: 50, maxLevel: 59, label: "50级段" },
+      L60: { key: "L60", minLevel: 60, maxLevel: 69, label: "60级段" },
+      L70: { key: "L70", minLevel: 70, maxLevel: 79, label: "70级段" },
+      L80: { key: "L80", minLevel: 80, maxLevel: 89, label: "80级段" },
+      "L90+": { key: "L90+", minLevel: 90, maxLevel: 999, label: "90级以上" }
+    }
+  };
+  return window.__JH_DATA__?.equipLevelBands || fallback;
+}
+
+function resolveLevelBandByLevel(requiredLevel) {
+  const cfg = getEquipLevelBandConfig();
+  const order = Array.isArray(cfg.order) ? cfg.order : [];
+  const bands = cfg.bands || {};
+  const lv = Math.max(1, Math.floor(Number(requiredLevel) || 1));
+  for (let i = 0; i < order.length; i += 1) {
+    const key = order[i];
+    const band = bands[key];
+    if (!band) continue;
+    const min = Math.floor(Number(band.minLevel) || 1);
+    const max = Math.floor(Number(band.maxLevel) || min);
+    if (lv >= min && lv <= max) return key;
+  }
+  return "L90+";
+}
+
+function toEquipId(name) {
+  return `equip_${String(name || "unknown").replace(/\s+/g, "_")}`;
+}
+
+function sanitizeAffixList(rawAffixes) {
+  if (!Array.isArray(rawAffixes)) return [];
+  return rawAffixes.map((affix, idx) => ({
+    key: affix?.key || `affix_${idx + 1}`,
+    name: affix?.name || "未命名词条",
+    value: Number(affix?.value) || 0,
+    valueType: affix?.valueType || "flat",
+    tier: Math.max(1, Math.floor(Number(affix?.tier) || 1)),
+    tags: Array.isArray(affix?.tags) ? affix.tags : []
+  }));
+}
+
 function createEquipSchema(config) {
   const baseStats = config.baseStats || {};
+  const quality = config.quality || "common";
+  const qualityMeta = getEquipQualityMeta(quality);
+  const requiredLevel = Math.max(1, Math.floor(Number(config.requiredLevel) || Number(qualityMeta.levelProfile?.defaultRequiredLevel) || 40));
+  const resolvedBand = config.levelBand || resolveLevelBandByLevel(requiredLevel);
+  const bandCfg = getEquipLevelBandConfig().bands?.[resolvedBand] || { label: resolvedBand, minLevel: requiredLevel, maxLevel: requiredLevel };
+
   return {
-    quality: config.quality || "common",
-    color: getEquipQualityColor(config.quality || "common", config.color),
+    schemaVersion: 1,
+    id: config.id || "",
+    name: config.name || "",
+
+    quality,
+    qualityRank: Number(qualityMeta.rank) || 1,
+    color: getEquipQualityColor(quality, config.color),
     slot: config.slot || "weapon",
+    slotType: config.slotType || config.slot || "weapon",
+    slotGroup: config.slotGroup || (config.slot === "artifact" ? "reserved" : "core"),
+
+    requiredLevel,
+    levelBand: resolvedBand,
+    levelBandLabel: bandCfg.label,
+    levelMin: Math.floor(Number(bandCfg.minLevel) || requiredLevel),
+    levelMax: Math.floor(Number(bandCfg.maxLevel) || requiredLevel),
+
     baseStats: {
-      attack: baseStats.attack || 0,
-      defense: baseStats.defense || 0
+      attack: Number(baseStats.attack) || 0,
+      defense: Number(baseStats.defense) || 0
     },
-    affixes: Array.isArray(config.affixes) ? config.affixes : [],
+    affixes: sanitizeAffixList(config.affixes),
+    affixSlots: Number.isFinite(Number(config.affixSlots)) ? Math.max(0, Math.floor(Number(config.affixSlots))) : (Number(qualityMeta.affixPoolSize) || 0),
     enhanceLevel: Number.isFinite(config.enhanceLevel) ? config.enhanceLevel : 0,
+
     specialEffects: Array.isArray(config.specialEffects) ? config.specialEffects : [],
     extraStats: config.extraStats && typeof config.extraStats === "object" ? config.extraStats : {},
+
+    valueProfile: {
+      baseValue: Math.max(1, Math.floor(Number(config?.valueProfile?.baseValue) || 100)),
+      valueMultiplier: Number(config?.valueProfile?.valueMultiplier) || Number(qualityMeta.economy?.baseValueMultiplier) || 1,
+      sellMultiplier: Number(config?.valueProfile?.sellMultiplier) || Number(qualityMeta.economy?.sellMultiplier) || 0.22
+    },
+
+    tags: Array.isArray(config.tags) ? config.tags : [],
+    reserved: {
+      accessorySlot: config?.reserved?.accessorySlot || null,
+      talismanSlot: config?.reserved?.talismanSlot || null,
+      artifactPath: config?.reserved?.artifactPath || null,
+      triggerHooks: Array.isArray(config?.reserved?.triggerHooks) ? config.reserved.triggerHooks : []
+    },
     desc: config.desc || "",
 
-    // 兼容旧逻辑（Phase 2.1A 仅做结构层，暂不做完整数值重算）
-    attack: baseStats.attack || 0,
-    defense: baseStats.defense || 0
+    // 兼容旧逻辑（Phase 1 只做数据合同，不做数值/流程接入）
+    attack: Number(baseStats.attack) || 0,
+    defense: Number(baseStats.defense) || 0
   };
+}
+
+function ensureEquipRecordDefaults(name, equipRef) {
+  if (!equipRef || typeof equipRef !== "object") return createEquipSchema({ name });
+  const normalized = createEquipSchema({ ...equipRef, name, id: equipRef.id || toEquipId(name) });
+
+  // 保留已有字段（避免破坏旧存档/旧逻辑潜在扩展）
+  return { ...equipRef, ...normalized };
 }
 
 window.__JH_DATA__.equipData = {
@@ -45,8 +144,8 @@ window.__JH_DATA__.equipData = {
   快靴: createEquipSchema({ quality: "common", color: "#9ca3af", slot: "shoes", baseStats: { attack: 2, defense: 3 }, desc: "更轻便一些的靴子" }),
   黑靴: createEquipSchema({ quality: "fine", color: "#22c55e", slot: "shoes", baseStats: { attack: 3, defense: 5 }, affixes: [{ key: "speed", name: "迅步", value: 2 }], desc: "较为扎实的江湖靴子" }),
   鹿皮靴: createEquipSchema({ quality: "fine", color: "#22c55e", slot: "shoes", baseStats: { attack: 4, defense: 7 }, affixes: [{ key: "dodge", name: "闪避", value: 2 }], desc: "轻巧耐磨，行动更稳" }),
-  追风靴: createEquipSchema({ quality: "rare", color: "#3b82f6", slot: "shoes", baseStats: { attack: 6, defense: 8 }, affixes: [{ key: "speed", name: "迅步", value: 4 }], specialEffects: [{ key: "wind_step", name: "踏风", desc: "预留：后续可挂接先手概率提升" }], desc: "步伐轻灵，适合闯荡" })
-  ,
+  追风靴: createEquipSchema({ quality: "rare", color: "#3b82f6", slot: "shoes", baseStats: { attack: 6, defense: 8 }, affixes: [{ key: "speed", name: "迅步", value: 4 }], specialEffects: [{ key: "wind_step", name: "踏风", desc: "预留：后续可挂接先手概率提升" }], desc: "步伐轻灵，适合闯荡" }),
+
   布帽: createEquipSchema({ quality: "common", slot: "hat", baseStats: { attack: 0, defense: 3 }, extraStats: { hp: 18, resist: 1 }, desc: "轻便帽子，略增抗性" }),
   玄铁盔: createEquipSchema({ quality: "fine", slot: "hat", baseStats: { attack: 0, defense: 6 }, extraStats: { hp: 40, resist: 2 }, desc: "带来更好的头部防护" }),
 
@@ -61,3 +160,8 @@ window.__JH_DATA__.equipData = {
   玄武盔: createEquipSchema({ quality: "rare", slot: "hat", baseStats: { attack: 1, defense: 10 }, extraStats: { hp: 55, resist: 4, dmgReduce: 2 }, desc: "标准测试头盔，防御表现稳定。" }),
   龙纹腰带: createEquipSchema({ quality: "rare", slot: "belt", baseStats: { attack: 2, defense: 8 }, extraStats: { hp: 50, mp: 35, trueDamage: 4 }, desc: "标准测试腰带，攻防属性均衡。" })
 };
+
+Object.keys(window.__JH_DATA__.equipData).forEach((equipName) => {
+  const record = window.__JH_DATA__.equipData[equipName];
+  window.__JH_DATA__.equipData[equipName] = ensureEquipRecordDefaults(equipName, record);
+});
