@@ -14,6 +14,7 @@ function createEquipQualityMeta(config) {
 
     // Equip 1.0 Phase 1 扩展合同
     levelProfile: {
+      // 仅用于旧档/缺字段兼容补位；正常装备生成应先写入 levelBand / requiredLevel
       defaultRequiredLevel: config.defaultRequiredLevel,
       preferredBand: config.preferredBand,
       mainstreamWeight: config.mainstreamWeight

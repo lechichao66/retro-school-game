@@ -437,7 +437,7 @@ function getEquipSellPrice(name) {
   const bandKey = equip.levelBand && bandCfg[equip.levelBand]
     ? equip.levelBand
     : resolveEquipSellBand(requiredLevel, bandOrder, bandCfg);
-  const fallbackBand = bandOrder[0] || "L10";
+  const fallbackBand = bandOrder.includes("L40") ? "L40" : (bandOrder[0] || "L10");
   const resolvedBand = bandKey || fallbackBand;
   const levelBandBasePrice = Math.max(1, Math.floor(Number(baseByBand[resolvedBand]) || 1000));
 

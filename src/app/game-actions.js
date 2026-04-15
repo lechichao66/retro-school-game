@@ -1292,7 +1292,29 @@
   }
 
   function debugGrantTestGear() {
-    ["寒铁剑", "黑铁甲", "玄武盔", "龙纹腰带", "追风靴", "赤炎坠", "镇岳法玺"].forEach((name) => addItem(name, 1));
+    const debugGearLevelBands = {
+      寒铁剑: "L60",
+      黑铁甲: "L60",
+      玄武盔: "L60",
+      龙纹腰带: "L60",
+      追风靴: "L60",
+      赤炎坠: "L60",
+      镇岳法玺: "L60"
+    };
+    const levelBandCfg = window.__JH_DATA__?.equipLevelBands?.bands || {};
+    Object.keys(debugGearLevelBands).forEach((name) => {
+      const equip = equipData?.[name];
+      const levelBand = debugGearLevelBands[name];
+      const band = levelBandCfg[levelBand];
+      if (equip && band) {
+        equip.levelBand = levelBand;
+        equip.levelBandLabel = band.label || levelBand;
+        equip.levelMin = Math.floor(Number(band.minLevel) || 60);
+        equip.levelMax = Math.floor(Number(band.maxLevel) || equip.levelMin);
+        equip.requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || equip.levelMin));
+      }
+      addItem(name, 1);
+    });
     setNotice("success", "调试成功：已发放当前版本标准最高测试套装。");
     addLog("sys", "【调试】发放当前版本标准最高测试套装。");
     updateAll();
