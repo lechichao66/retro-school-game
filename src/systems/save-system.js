@@ -104,10 +104,14 @@
       const chosenBand = safeBand
         ? { key: explicitBand, band: safeBand }
         : (bandFromRequiredLevel || fallbackBand);
-      const requiredLevel = explicitRequiredLevel
-        || Math.max(1, Math.floor(Number(chosenBand.band?.minLevel) || 0))
-        || legacyQualityLevel
-        || 40;
+      const bandMinLevel = Math.max(1, Math.floor(Number(chosenBand.band?.minLevel) || 1));
+      const bandMaxLevel = Math.max(bandMinLevel, Math.floor(Number(chosenBand.band?.maxLevel) || bandMinLevel));
+      const requiredLevelInBand = explicitRequiredLevel > 0
+        && explicitRequiredLevel >= bandMinLevel
+        && explicitRequiredLevel <= bandMaxLevel;
+      const requiredLevel = explicitRequiredLevel > 0
+        ? (safeBand && !requiredLevelInBand ? bandMinLevel : explicitRequiredLevel)
+        : (bandMinLevel || legacyQualityLevel || 40);
       const { key: levelBand, band } = chosenBand;
       const baseStats = equip.baseStats && typeof equip.baseStats === "object" ? equip.baseStats : {};
 
@@ -123,8 +127,8 @@
       equip.requiredLevel = requiredLevel;
       equip.levelBand = levelBand;
       if (typeof equip.levelBandLabel !== "string" || !equip.levelBandLabel) equip.levelBandLabel = band.label || levelBand;
-      equip.levelMin = Math.floor(Number(equip.levelMin) || Number(band.minLevel) || requiredLevel);
-      equip.levelMax = Math.floor(Number(equip.levelMax) || Number(band.maxLevel) || requiredLevel);
+      equip.levelMin = Math.floor(Number(equip.levelMin) || bandMinLevel || requiredLevel);
+      equip.levelMax = Math.floor(Number(equip.levelMax) || bandMaxLevel || requiredLevel);
 
       equip.baseStats = {
         attack: Number(baseStats.attack ?? equip.attack ?? 0) || 0,

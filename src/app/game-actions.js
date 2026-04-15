@@ -1311,7 +1311,7 @@
         equip.levelBandLabel = band.label || levelBand;
         equip.levelMin = Math.floor(Number(band.minLevel) || 60);
         equip.levelMax = Math.floor(Number(band.maxLevel) || equip.levelMin);
-        equip.requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || equip.levelMin));
+        equip.requiredLevel = Math.max(1, equip.levelMin);
       }
       addItem(name, 1);
     });
