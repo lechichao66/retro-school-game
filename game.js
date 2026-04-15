@@ -69,6 +69,8 @@ function unequipSlot(slot) { return window.__JH_ECONOMY_BAG__.unequipSlot(slot);
 function buyShopItem(index) { return window.__JH_ECONOMY_BAG__.buyShopItem(index); }
 function buyMarketItem(name, price) { return window.__JH_ECONOMY_BAG__.buyMarketItem(name, price); }
 function craftMedicine(index) { return window.__JH_ECONOMY_BAG__.craftMedicine(index); }
+function sellItem(name, count) { return window.__JH_ECONOMY_BAG__.sellItem(name, count); }
+function sellBatchByMode(mode) { return window.__JH_ECONOMY_BAG__.sellBatchByMode(mode); }
 
 
 // ===== 6. 门派、职业、存档（委托 src/app/game-actions.js） =====
@@ -137,6 +139,8 @@ window.useItem = useItem;
 window.equipItem = equipItem;
 window.unequipSlot = unequipSlot;
 window.craftMedicine = craftMedicine;
+window.sellItem = sellItem;
+window.sellBatchByMode = sellBatchByMode;
 
 window.joinSect = joinSect;
 window.chooseJob = chooseJob;

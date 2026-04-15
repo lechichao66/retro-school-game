@@ -277,7 +277,7 @@ function getAffixShortLabel(key) {
 function getEquipDisplayParts(name) {
   const equip = (typeof equipData !== "undefined" && equipData[name]) ? equipData[name] : null;
   if (!equip) {
-    return { name, qualityText: "凡品", qualityColor: "#9ca3af", affixShort: "无词缀", affixFull: "无词缀", specialText: "无", titleHtml: name };
+    return { name, qualityText: "凡品", qualityColor: "#9ca3af", qualityKey: "common", qualityRank: 1, affixShort: "无词缀", affixFull: "无词缀", specialText: "无", titleHtml: name };
   }
   const quality = getEquipQualityMeta(equip.quality);
   const affixes = Array.isArray(equip.affixes) ? equip.affixes : [];
@@ -289,12 +289,14 @@ function getEquipDisplayParts(name) {
   return {
     name,
     equip,
+    qualityKey: quality.key || equip.quality || "common",
+    qualityRank: Number(quality.rank) || 1,
     qualityText,
     qualityColor: quality.color || "#9ca3af",
     affixShort,
     affixFull,
     specialText,
-    titleHtml: `<span style="color:${quality.color};">[${qualityText}]</span> ${name}`
+    titleHtml: `<span class="equip-name equip-quality-${quality.key || "common"}" style="color:${quality.color || "#9ca3af"};" title="品级：${qualityText}">${name}</span>`
   };
 }
 
@@ -367,6 +369,40 @@ function getItemTypeText(name) {
   if (name === "山贼令牌" || name === "伤寒论残页") return "任务物品";
   if (name === "生姜" || name === "甘草" || name === "止血草" || name === "熊胆") return "材料";
   return "材料";
+}
+
+function getItemBasePrice(name) {
+  const shopPrice = Array.isArray(shopItems) ? shopItems.find((x) => x.name === name)?.price : 0;
+  if (Number(shopPrice) > 0) return Math.floor(Number(shopPrice));
+
+  const itemCfg = (typeof itemData !== "undefined" && itemData[name]) ? itemData[name] : null;
+  if (Number(itemCfg?.basePrice) > 0) return Math.floor(Number(itemCfg.basePrice));
+
+  const equip = (typeof equipData !== "undefined" && equipData[name]) ? equipData[name] : null;
+  if (equip) {
+    const atk = Number(equip.baseStats?.attack ?? equip.attack ?? 0) || 0;
+    const def = Number(equip.baseStats?.defense ?? equip.defense ?? 0) || 0;
+    const quality = getEquipQualityMeta(equip.quality);
+    const qualityScale = Number(quality.statMultiplier) || 1;
+    return Math.max(8, Math.floor((atk * 2 + def * 2 + 10) * qualityScale));
+  }
+
+  return 6;
+}
+
+function getItemSellPrice(name) {
+  const cfg = window.__JH_DATA__?.inventorySaleConfig || {};
+  const typeRates = cfg.sellRateByType || {};
+  const type = getItemTypeText(name);
+  const itemCfg = (typeof itemData !== "undefined" && itemData[name]) ? itemData[name] : null;
+  const fixed = Number(itemCfg?.sellPrice ?? itemCfg?.price ?? 0) || 0;
+  if (fixed > 0) return Math.max(1, Math.floor(fixed));
+
+  const basePrice = getItemBasePrice(name);
+  const globalRate = Number(cfg.defaultSellRate) || 0.45;
+  const typeRate = Number(typeRates[type]);
+  const finalRate = Number.isFinite(typeRate) ? typeRate : globalRate;
+  return Math.max(1, Math.floor(basePrice * finalRate));
 }
 
 function getItemDetailText(name) {
