@@ -380,12 +380,15 @@
         const isTask = getItemTypeText(name) === "任务物品";
         const canSell = !isTask;
         const quickTooltip = equipInfo
-          ? `品级：${equipInfo.qualityText}｜词缀：${equipInfo.affixShort}`
-          : getItemDetailText(name);
+          ? getEquipTooltipHtml(name, { compact: false })
+          : `<div class="equip-tooltip-block"><div class="equip-tooltip-line">${getItemDetailText(name)}</div></div>`;
+        const nameCellHtml = equipInfo
+          ? `<span class="equip-tooltip-anchor">${equipInfo.titleHtml}<span class="equip-tooltip-panel">${quickTooltip}</span></span>`
+          : `<b title="${getItemDetailText(name)}">${name}</b>`;
         return `
           <tr>
             <td>
-              <b title="${quickTooltip}">${equipInfo ? equipInfo.titleHtml : name}</b><br>
+              ${nameCellHtml}<br>
               <small style="color:#666;">${getItemDetailText(name)}</small>
             </td>
             <td>${qty}</td>
@@ -480,23 +483,122 @@
     if (!equip) return "<div class='list-line'>该装备数据不存在。</div>";
 
     const quality = getEquipQualityMeta(equip.quality);
+    const slotLabels = {
+      weapon: "武器",
+      armor: "衣服",
+      hat: "帽子",
+      belt: "腰带",
+      shoes: "鞋子",
+      necklace: "项链",
+      artifact: "法宝"
+    };
     const baseAttack = equip.baseStats?.attack || equip.attack || 0;
     const baseDefense = equip.baseStats?.defense || equip.defense || 0;
     const effects = Array.isArray(equip.specialEffects) ? equip.specialEffects : [];
     const extraEntries = equip.extraStats && typeof equip.extraStats === "object"
       ? Object.entries(equip.extraStats).filter(([, v]) => Number(v) !== 0)
       : [];
-    const extraStats = extraEntries.length
+    const extraStats = extraEntries.length ? extraEntries : [];
+    const slotText = slotLabels[equip.slot] || equip.slot || "未知";
+    const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || 1));
+    const specialEffectsHtml = effects.length
+      ? effects.map((x) => {
+        const effectText = getSpecialEffectText(x);
+        const reserveTag = x?.desc && String(x.desc).includes("预留")
+          ? "<span class='equip-detail-reserved'>（预留 / 未激活 / 后续开放）</span>"
+          : "";
+        return `<div class="list-line">- ${effectText}${reserveTag}</div>`;
+      }).join("")
+      : "<div class='list-line'>- 无（预留 / 未激活 / 后续开放）</div>";
+
+    return `
+      <div class="equip-detail-block">
+        <div class="list-line equip-detail-title"><b class="equip-name equip-quality-${quality.key || "common"}" style="color:${quality.color}">${name}</b></div>
+        <div class="list-line">品级：${quality.name || "凡品"}</div>
+        <div class="list-line">部位：${slotText}</div>
+        <div class="list-line">等级要求：${requiredLevel}</div>
+      </div>
+      <div class="equip-detail-block">
+        <div class="list-line"><b>基础属性</b></div>
+        <div class="list-line">攻击 +${baseAttack}</div>
+        <div class="list-line">防御 +${baseDefense}</div>
+      </div>
+      <div class="equip-detail-block">
+        <div class="list-line"><b>附加属性</b></div>
+        ${extraStats.length ? extraStats.map(([k, v]) => `<div class="list-line">${getStatLabel(k)} +${v}</div>`).join("") : "<div class='list-line'>无</div>"}
+        <div class="list-line">词缀（完整）：${info.affixFull}</div>
+      </div>
+      <div class="equip-detail-block">
+        <div class="list-line"><b>特效</b></div>
+        ${specialEffectsHtml}
+      </div>
+      <div class="equip-detail-block">
+        <div class="list-line">说明：${equip.desc || "暂无"}</div>
+      </div>
+    `;
+  }
+
+  function getEquipSlotLabel(slot) {
+    const slotLabels = {
+      weapon: "武器",
+      armor: "衣服",
+      hat: "帽子",
+      belt: "腰带",
+      shoes: "鞋子",
+      necklace: "项链",
+      artifact: "法宝"
+    };
+    return slotLabels[slot] || slot || "未知";
+  }
+
+  function getEquipTooltipHtml(name, options = {}) {
+    const info = getEquipDisplayParts(name);
+    const equip = info?.equip;
+    if (!equip) {
+      return `<div class="equip-tooltip-block"><div class="equip-tooltip-line">${name}</div></div>`;
+    }
+
+    const compact = options.compact !== false;
+    const quality = getEquipQualityMeta(equip.quality);
+    const baseAttack = equip.baseStats?.attack || equip.attack || 0;
+    const baseDefense = equip.baseStats?.defense || equip.defense || 0;
+    const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || 1));
+    const extraEntries = equip.extraStats && typeof equip.extraStats === "object"
+      ? Object.entries(equip.extraStats).filter(([, v]) => Number(v) !== 0)
+      : [];
+    const effects = Array.isArray(equip.specialEffects) ? equip.specialEffects : [];
+    const effectText = effects.length
+      ? effects.map((x) => {
+        const reserved = x?.desc && String(x.desc).includes("预留") ? "（预留 / 未激活 / 后续开放）" : "";
+        return `${getSpecialEffectText(x)}${reserved}`;
+      }).join("；")
+      : "无（预留 / 未激活 / 后续开放）";
+
+    const extraText = extraEntries.length
       ? extraEntries.map(([k, v]) => `${getStatLabel(k)}+${v}`).join("，")
       : "无";
 
     return `
-      <div class="list-line"><b style="color:${quality.color}">[${quality.name}] ${name}</b></div>
-      <div class="list-line">基础属性：攻击 +${baseAttack} / 防御 +${baseDefense}</div>
-      <div class="list-line">额外属性：${extraStats}</div>
-      <div class="list-line">词缀（完整）：${info.affixFull}</div>
-      <div class="list-line">特殊效果：${effects.length ? effects.map((x) => getSpecialEffectText(x)).join("，") : "无"}</div>
-      <div class="list-line">说明：${equip.desc || "暂无"}</div>
+      <div class="equip-tooltip-block">
+        <div class="equip-tooltip-title" style="color:${quality.color || "#9ca3af"}">${name}</div>
+        <div class="equip-tooltip-line">品级：${quality.name || "凡品"}</div>
+        <div class="equip-tooltip-line">部位：${getEquipSlotLabel(equip.slot)}</div>
+        <div class="equip-tooltip-line">等级要求：${requiredLevel}</div>
+      </div>
+      <div class="equip-tooltip-block">
+        <div class="equip-tooltip-subtitle">基础属性</div>
+        <div class="equip-tooltip-line">攻击 +${baseAttack} / 防御 +${baseDefense}</div>
+      </div>
+      ${compact ? "" : `
+      <div class="equip-tooltip-block">
+        <div class="equip-tooltip-subtitle">附加属性</div>
+        <div class="equip-tooltip-line">${extraText}</div>
+      </div>
+      <div class="equip-tooltip-block">
+        <div class="equip-tooltip-subtitle">特效</div>
+        <div class="equip-tooltip-line">${effectText}</div>
+      </div>
+      `}
     `;
   }
 

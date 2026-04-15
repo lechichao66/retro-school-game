@@ -248,3 +248,67 @@ body {
 .equip-quality-legend {
   text-shadow: 0 0 12px rgba(245, 158, 11, 0.68);
 }
+
+.equip-tooltip-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.equip-tooltip-panel {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  top: calc(100% + 8px);
+  min-width: 280px;
+  max-width: 420px;
+  padding: 8px 10px;
+  border: 1px solid #8a6a45;
+  background: #fff8eb;
+  box-shadow: 0 8px 20px rgba(58, 36, 12, 0.28);
+  color: #2f2922;
+  text-align: left;
+  line-height: 1.6;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.equip-tooltip-anchor:hover .equip-tooltip-panel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.equip-tooltip-block + .equip-tooltip-block {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #c9ac86;
+}
+
+.equip-tooltip-title {
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+
+.equip-tooltip-subtitle {
+  font-weight: bold;
+  color: #6b4021;
+}
+
+.equip-tooltip-line {
+  font-size: 12px;
+}
+
+.equip-detail-block + .equip-detail-block {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #d8c1a0;
+}
+
+.equip-detail-title {
+  font-size: 15px;
+}
+
+.equip-detail-reserved {
+  color: #8a5a2a;
+}
