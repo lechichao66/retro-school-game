@@ -69,20 +69,52 @@
     return cfg.routes.find((x) => x.id === selectedId) || cfg.routes[0] || null;
   }
 
+  function getTradeLevelBand(level) {
+    const safeLevel = Math.max(1, Number(level) || 1);
+    if (safeLevel >= 50) return "l50";
+    if (safeLevel >= 40) return "l40";
+    return "l30";
+  }
+
+  function getTradeGrowthMultiplier(level) {
+    const safeLevel = Math.max(1, Number(level) || 1);
+    if (safeLevel <= 50) return { min: 1, max: 1, steps: 0 };
+    const cfg = tradeRoutes?.post50GrowthPer10Levels || {};
+    const growMin = Math.max(0, Number(cfg.min) || 0.05);
+    const growMax = Math.max(growMin, Number(cfg.max) || 0.08);
+    const steps = Math.floor((safeLevel - 50) / 10);
+    return {
+      min: 1 + steps * growMin,
+      max: 1 + steps * growMax,
+      steps
+    };
+  }
+
+  function getTradeExpRatio(level) {
+    const band = getTradeLevelBand(level);
+    const ratios = tradeRoutes?.expRatioByLevelBand || {};
+    const picked = ratios[band] || ratios.l30 || { min: 0.002, max: 0.006 };
+    const min = Math.max(0, Number(picked.min) || 0.002);
+    const max = Math.max(min, Number(picked.max) || 0.006);
+    return { min, max, band };
+  }
+
   function formatEconomyWorkSummary(detail) {
     const source = detail && typeof detail === "object" ? detail : {};
     const formula = source.formula && typeof source.formula === "object" ? source.formula : {};
     const rewards = source.rewards && typeof source.rewards === "object" ? source.rewards : {};
-    const fluctuationPct = Math.round((Number(formula.randomFactor) || 0) * 100);
-    const fluctuationText = fluctuationPct >= 0 ? `+${fluctuationPct}%` : `${fluctuationPct}%`;
-    const levelPart = Number(formula.levelBonus) || 0;
-    const mapPart = Number(formula.mapBonus) || 0;
-    const sectPart = Number(formula.sectBonus) || 0;
-    const basePart = Number(formula.baseSilver) || 0;
-    const rawPart = basePart + levelPart + mapPart;
+    const band = formula.levelBand || "l30";
+    const bandName = band === "l50" ? "50级+" : (band === "l40" ? "40级段" : "30级段");
+    const baseMin = Number(formula.baseMin) || 0;
+    const baseMax = Number(formula.baseMax) || 0;
+    const growthSteps = Number(formula.post50Steps) || 0;
+    const growthMinPct = Math.round((Number(formula.post50GrowthMin) || 1) * 100) - 100;
+    const growthMaxPct = Math.round((Number(formula.post50GrowthMax) || 1) * 100) - 100;
+    const ratioPct = Math.round((Number(formula.expRatio) || 0) * 10000) / 100;
     const income = Number(formula.income) || Number(rewards.silver) || 0;
     const exp = Number(rewards.exp) || 0;
-    return `【跑商结算】路线【${source.routeName || "未知路线"}】｜体力 -${source.staminaCost || 0}｜银两 +${income}｜经验 +${exp}｜拆解：基础${basePart} + 等级加成${levelPart} + 地图加成${mapPart} = ${rawPart}，波动${fluctuationText}${sectPart ? `，门派加成 +${sectPart}` : ""}，最终银两 ${income}。`;
+    const growthText = growthSteps > 0 ? `，50级后成长档 +${growthMinPct}%~+${growthMaxPct}%` : "";
+    return `【跑商结算】路线【${source.routeName || "未知路线"}】｜体力 -${source.staminaCost || 0}｜银两 +${income}｜经验 +${exp}｜拆解：${bandName}银两基准 ${baseMin}~${baseMax}${growthText}；经验按下一级需求的 ${ratioPct}% 结算。`;
   }
 
   function ensureGrowthState() {
@@ -342,19 +374,19 @@
       return;
     }
 
-    const routeLevel = Number(route.requiredLevel) || 1;
-    const mapLevel = Math.max(1, Number(mapData?.[player.location]?.minLevel) || 1);
-    const baseSilver = Math.max(1, Number(route.baseSilver) || 20);
-    const levelBonus = Math.max(0, player.level - routeLevel) * 2;
-    const mapBonus = Math.floor(baseSilver * mapLevel * (Number(route.mapBonusRate) || 0.03));
-    const variancePct = Math.max(0, Number(route.variancePct) || 0.12);
-    const randomFactor = (Math.random() * 2 - 1) * variancePct;
-    const rawSilver = baseSilver + levelBonus + mapBonus;
-    let income = Math.max(1, Math.floor(rawSilver * (1 + randomFactor)));
-    if (player.sect === "丐帮") income += 5;
+    const levelBand = getTradeLevelBand(player.level);
+    const silverCfg = route.silverByLevelBand?.[levelBand] || route.silverByLevelBand?.l30 || { min: 10000, max: 14000 };
+    const baseMin = Math.max(1, Math.floor(Number(silverCfg.min) || 10000));
+    const baseMax = Math.max(baseMin, Math.floor(Number(silverCfg.max) || baseMin));
+    const growth = getTradeGrowthMultiplier(player.level);
+    const finalMin = Math.max(1, Math.floor(baseMin * growth.min));
+    const finalMax = Math.max(finalMin, Math.floor(baseMax * growth.max));
+    const income = Math.floor(finalMin + Math.random() * (finalMax - finalMin + 1));
 
-    const baseExp = Math.max(1, Number(route.baseExp) || 6);
-    const expGain = baseExp + Math.max(0, Math.floor((mapLevel - routeLevel) / 4));
+    const needExp = window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(player.level) || Math.max(1, player.level * 100);
+    const expRatio = getTradeExpRatio(player.level);
+    const rolledRatio = expRatio.min + Math.random() * (expRatio.max - expRatio.min);
+    const expGain = Math.max(1, Math.floor(needExp * rolledRatio));
 
     player.money += income;
     gainExp(expGain);
@@ -364,16 +396,15 @@
       routeName: route.name,
       staminaCost: needStamina,
       level: player.level,
-      routeLevel,
       map: player.location,
-      mapLevel,
       formula: {
-        baseSilver,
-        levelBonus,
-        mapBonus,
-        variancePct,
-        randomFactor: Number(randomFactor.toFixed(4)),
-        sectBonus: player.sect === "丐帮" ? 5 : 0,
+        levelBand,
+        baseMin,
+        baseMax,
+        post50Steps: growth.steps,
+        post50GrowthMin: Number(growth.min.toFixed(4)),
+        post50GrowthMax: Number(growth.max.toFixed(4)),
+        expRatio: Number(rolledRatio.toFixed(6)),
         income
       },
       rewards: {
