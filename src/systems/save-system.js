@@ -72,6 +72,14 @@
     return { key: "L90+", band: bands["L90+"] || { minLevel: 90, maxLevel: 999, label: "90级以上" } };
   }
 
+  function getEquipFallbackBand() {
+    const levelCfg = g.__JH_DATA__?.equipLevelBands || getDefaultEquipLevelBands();
+    const order = Array.isArray(levelCfg.order) ? levelCfg.order : [];
+    const bands = levelCfg.bands || {};
+    const preferred = order.includes("L40") ? "L40" : (order[0] || "L10");
+    return { key: preferred, band: bands[preferred] || { minLevel: 40, maxLevel: 49, label: "40级段" } };
+  }
+
   function ensureEquipDataCompatibility() {
     const equipData = g.__JH_DATA__?.equipData;
     const qualityCfg = g.__JH_DATA__?.equipQualityConfig || {};
@@ -83,8 +91,24 @@
 
       const quality = typeof equip.quality === "string" ? equip.quality : "common";
       const qualityMeta = qualityCfg[quality] || qualityCfg.common || {};
-      const requiredLevel = Math.max(1, Math.floor(Number(equip.requiredLevel) || Number(qualityMeta.levelProfile?.defaultRequiredLevel) || 40));
-      const { key: levelBand, band } = resolveEquipLevelBand(requiredLevel);
+      const explicitBand = typeof equip.levelBand === "string" && equip.levelBand ? equip.levelBand : "";
+      const explicitRequiredLevel = Number.isFinite(Number(equip.requiredLevel))
+        ? Math.max(1, Math.floor(Number(equip.requiredLevel)))
+        : 0;
+      const legacyQualityLevel = Number.isFinite(Number(qualityMeta.levelProfile?.defaultRequiredLevel))
+        ? Math.max(1, Math.floor(Number(qualityMeta.levelProfile.defaultRequiredLevel)))
+        : 0;
+      const bandFromRequiredLevel = explicitRequiredLevel > 0 ? resolveEquipLevelBand(explicitRequiredLevel) : null;
+      const fallbackBand = getEquipFallbackBand();
+      const safeBand = explicitBand && (g.__JH_DATA__?.equipLevelBands?.bands?.[explicitBand] || getDefaultEquipLevelBands().bands?.[explicitBand]);
+      const chosenBand = safeBand
+        ? { key: explicitBand, band: safeBand }
+        : (bandFromRequiredLevel || fallbackBand);
+      const requiredLevel = explicitRequiredLevel
+        || Math.max(1, Math.floor(Number(chosenBand.band?.minLevel) || 0))
+        || legacyQualityLevel
+        || 40;
+      const { key: levelBand, band } = chosenBand;
       const baseStats = equip.baseStats && typeof equip.baseStats === "object" ? equip.baseStats : {};
 
       equip.schemaVersion = Math.max(1, Math.floor(Number(equip.schemaVersion) || 1));
@@ -97,7 +121,7 @@
       if (typeof equip.slotGroup !== "string" || !equip.slotGroup) equip.slotGroup = equip.slot === "artifact" ? "reserved" : "core";
 
       equip.requiredLevel = requiredLevel;
-      equip.levelBand = typeof equip.levelBand === "string" && equip.levelBand ? equip.levelBand : levelBand;
+      equip.levelBand = levelBand;
       if (typeof equip.levelBandLabel !== "string" || !equip.levelBandLabel) equip.levelBandLabel = band.label || levelBand;
       equip.levelMin = Math.floor(Number(equip.levelMin) || Number(band.minLevel) || requiredLevel);
       equip.levelMax = Math.floor(Number(equip.levelMax) || Number(band.maxLevel) || requiredLevel);

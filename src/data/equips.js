@@ -44,6 +44,20 @@ function resolveLevelBandByLevel(requiredLevel) {
   return "L90+";
 }
 
+function normalizeLevelBandKey(levelBand) {
+  if (typeof levelBand !== "string" || !levelBand) return "";
+  const cfg = getEquipLevelBandConfig();
+  const bands = cfg.bands || {};
+  return bands[levelBand] ? levelBand : "";
+}
+
+function getFallbackLevelBand() {
+  const cfg = getEquipLevelBandConfig();
+  const order = Array.isArray(cfg.order) ? cfg.order : [];
+  if (order.includes("L40")) return "L40";
+  return order[0] || "L10";
+}
+
 function toEquipId(name) {
   return `equip_${String(name || "unknown").replace(/\s+/g, "_")}`;
 }
@@ -64,9 +78,18 @@ function createEquipSchema(config) {
   const baseStats = config.baseStats || {};
   const quality = config.quality || "common";
   const qualityMeta = getEquipQualityMeta(quality);
-  const requiredLevel = Math.max(1, Math.floor(Number(config.requiredLevel) || Number(qualityMeta.levelProfile?.defaultRequiredLevel) || 40));
-  const resolvedBand = config.levelBand || resolveLevelBandByLevel(requiredLevel);
-  const bandCfg = getEquipLevelBandConfig().bands?.[resolvedBand] || { label: resolvedBand, minLevel: requiredLevel, maxLevel: requiredLevel };
+  const levelCfg = getEquipLevelBandConfig();
+  const bandCfgMap = levelCfg.bands || {};
+  const explicitBand = normalizeLevelBandKey(config.levelBand);
+  const explicitLevel = Number.isFinite(Number(config.requiredLevel)) ? Math.max(1, Math.floor(Number(config.requiredLevel))) : 0;
+  const compatibilityLevel = config.legacyQualityLevelFallback === true
+    ? Math.max(1, Math.floor(Number(qualityMeta.levelProfile?.defaultRequiredLevel) || 40))
+    : 0;
+  const requiredLevel = explicitLevel || compatibilityLevel;
+  const resolvedBand = explicitBand
+    || (requiredLevel > 0 ? resolveLevelBandByLevel(requiredLevel) : getFallbackLevelBand());
+  const bandCfg = bandCfgMap[resolvedBand] || { label: resolvedBand, minLevel: requiredLevel || 40, maxLevel: requiredLevel || 40 };
+  const finalizedRequiredLevel = requiredLevel || Math.max(1, Math.floor(Number(bandCfg.minLevel) || 40));
 
   return {
     schemaVersion: 1,
@@ -80,11 +103,11 @@ function createEquipSchema(config) {
     slotType: config.slotType || config.slot || "weapon",
     slotGroup: config.slotGroup || (config.slot === "artifact" ? "reserved" : "core"),
 
-    requiredLevel,
+    requiredLevel: finalizedRequiredLevel,
     levelBand: resolvedBand,
     levelBandLabel: bandCfg.label,
-    levelMin: Math.floor(Number(bandCfg.minLevel) || requiredLevel),
-    levelMax: Math.floor(Number(bandCfg.maxLevel) || requiredLevel),
+    levelMin: Math.floor(Number(bandCfg.minLevel) || finalizedRequiredLevel),
+    levelMax: Math.floor(Number(bandCfg.maxLevel) || finalizedRequiredLevel),
 
     baseStats: {
       attack: Number(baseStats.attack) || 0,
