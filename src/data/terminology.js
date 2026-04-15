@@ -14,6 +14,7 @@ window.__JH_DATA__.terminology = {
     hp: "气血",
     mp: "内力",
     resist: "抗性",
+    hit: "命中",
     crit: "暴击率",
     crit_dmg: "暴击伤害",
     trueDamage: "真实伤害",
@@ -24,6 +25,7 @@ window.__JH_DATA__.terminology = {
   },
   affix: {
     crit: "会心",
+    hit: "命中",
     crit_dmg: "暴伤",
     atk_pct: "强攻",
     def_pct: "固守",
@@ -39,6 +41,7 @@ window.__JH_DATA__.terminology = {
   },
   affixShort: {
     crit: "会",
+    hit: "命",
     crit_dmg: "暴",
     atk_pct: "攻",
     def_pct: "守",

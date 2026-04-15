@@ -509,12 +509,15 @@ function getItemDetailText(name) {
   if (typeof equipData !== "undefined" && equipData[name]) {
     const info = getEquipDisplayParts(name);
     const e = info.equip;
-    const attack = e.attack || e.baseStats?.attack || 0;
-    const defense = e.defense || e.baseStats?.defense || 0;
+    const attack = Number(e.baseStats?.attack ?? e.attack ?? 0) || 0;
+    const defense = Number(e.baseStats?.defense ?? e.defense ?? 0) || 0;
+    const baseParts = [];
+    if (attack !== 0) baseParts.push(`攻击+${attack}`);
+    if (defense !== 0) baseParts.push(`防御+${defense}`);
     const extras = e.extraStats && typeof e.extraStats === "object"
-      ? Object.keys(e.extraStats).map((key) => `${getStatLabel(key)}+${e.extraStats[key]}`).join("，")
+      ? Object.keys(e.extraStats).filter((key) => Number(e.extraStats[key]) !== 0).map((key) => `${getStatLabel(key)}+${e.extraStats[key]}`).join("，")
       : "";
-    return `【<span style="color:${info.qualityColor};">${info.qualityText}</span>装备】攻击+${attack}，防御+${defense}，词缀：${info.affixShort}，详情词缀：${info.affixFull}，特殊：${info.specialText}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
+    return `【<span style="color:${info.qualityColor};">${info.qualityText}</span>装备】${baseParts.length ? `${baseParts.join("，")}，` : ""}词缀：${info.affixShort}，详情词缀：${info.affixFull}，特殊：${info.specialText}${extras ? `，${extras}` : ""}。${e.desc || ""}`;
   }
 
   if (name === "小还丹") return "【丹药】恢复气血20、内力10。";
