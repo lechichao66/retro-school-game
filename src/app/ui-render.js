@@ -285,6 +285,11 @@
     const bonus = getEquipBonus();
     const adv = window.__JH_SELECTORS__?.getDerivedCombatStatsValue?.() || {};
     const martialData = getMartialStatusData();
+    const autoCap = window.__JH_LEVEL_SYSTEM__?.getAutoLevelCap?.() || 40;
+    const manualNeed = window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(player.level) || 0;
+    const manualBreakthrough = player.level >= autoCap
+      ? `<div class="shop-actions" style="margin-top:6px;"><button class="small-btn" onclick="manualLevelUp()">手动突破（需经验池 ${manualNeed}）</button></div>`
+      : "";
     const slotLabels = {
       gongfa: "功法",
       wugong: "武功",
@@ -307,6 +312,7 @@
           <div class="list-line">总经验：${player.totalExp || 0}</div>
           <div class="list-line">经验池：${player.expReserve || 0}</div>
           <div class="list-line">升级进度：${player.level >= (window.__JH_LEVEL_SYSTEM__?.getAutoLevelCap?.() || 40) ? "40级后改为手动突破" : `${player.expReserve || 0} / ${window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(player.level) || player.level * 100}`}</div>
+          ${manualBreakthrough}
           <div class="list-line">当前位置：${player.location}</div>
         </div>
 
@@ -544,22 +550,24 @@
     if (!player.trade || typeof player.trade !== "object") player.trade = {};
     const selectedRouteId = typeof player.trade.selectedRouteId === "string" ? player.trade.selectedRouteId : defaultRouteId;
     const currentRoute = routes.find((x) => x.id === selectedRouteId) || routes[0] || null;
+    const currentBand = (player.level || 1) >= 50 ? "l50" : ((player.level || 1) >= 40 ? "l40" : "l30");
+    const expCfg = tradeRoutes?.expRatioByLevelBand?.[currentBand] || tradeRoutes?.expRatioByLevelBand?.l30 || { min: 0.002, max: 0.006 };
+    const expRangeText = `${(expCfg.min * 100).toFixed(1)}%~${(expCfg.max * 100).toFixed(1)}%`;
     const routeRows = routes.map((route) => {
       const requiredLevel = Number(route.requiredLevel) || 1;
       const canSelect = player.level >= requiredLevel;
       const isSelected = currentRoute?.id === route.id;
-      const baseSilver = Math.max(1, Number(route.baseSilver) || 20);
-      const variancePct = Math.max(0, Number(route.variancePct) || 0.12);
-      const minSilver = Math.max(1, Math.floor(baseSilver * (1 - variancePct)));
-      const maxSilver = Math.max(minSilver, Math.floor(baseSilver * (1 + variancePct)));
-      return `<tr><td>${route.name}</td><td>${route.intro || "-"}</td><td>等级${requiredLevel}+ / 基础银两${baseSilver} / 波动约${Math.round(variancePct * 100)}%</td><td>单次参考：${minSilver}~${maxSilver} 两，经验 +${route.baseExp || 0}</td><td>${isSelected ? "<span style='color:#2f855a;'>当前</span>" : `<button class='small-btn' ${canSelect ? "" : "disabled"} onclick="setTradeRoute('${route.id}')">选择</button>`}</td></tr>`;
+      const silverCfg = route?.silverByLevelBand?.[currentBand] || route?.silverByLevelBand?.l30 || { min: 10000, max: 14000 };
+      const minSilver = Math.max(1, Math.floor(Number(silverCfg.min) || 10000));
+      const maxSilver = Math.max(minSilver, Math.floor(Number(silverCfg.max) || minSilver));
+      return `<tr><td>${route.name}</td><td>${route.intro || "-"}</td><td>等级${requiredLevel}+ / 当前档位${currentBand === "l50" ? "50级+" : (currentBand === "l40" ? "40级段" : "30级段")}</td><td>单次参考：${minSilver}~${maxSilver} 两，经验为下一级需求的 ${expRangeText}</td><td>${isSelected ? "<span style='color:#2f855a;'>当前</span>" : `<button class='small-btn' ${canSelect ? "" : "disabled"} onclick="setTradeRoute('${route.id}')">选择</button>`}</td></tr>`;
     }).join("");
 
     setMainTitle("江湖职业");
     setMainContent(`${renderNoticeHtml()}<div class="notice">当前职业：<b>${player.job}</b></div><div class='card'><h3>跑商路线</h3><div class='list-line'>当前路线：<b>${currentRoute?.name || "暂无"}</b>（建议在对应等级地图执行，收益更稳定）</div><div class='table-box'><table><thead><tr><th>路线</th><th>说明</th><th>门槛/基础参数</th><th>玩家可读收益参考</th><th>操作</th></tr></thead><tbody>${routeRows || "<tr><td colspan='5'>暂无跑商路线配置</td></tr>"}</tbody></table></div></div><div class="table-box"><table><thead><tr><th>职业</th><th>说明</th><th>产出</th><th>选择</th></tr></thead><tbody>${rows}</tbody></table></div><div class="shop-actions"><button class="action-btn" onclick="doJob()">执行职业动作</button><button class="action-btn" onclick="work()">执行一次跑商（体力换银两）</button></div><div class='card'><h3>跑商最近记录</h3>${renderRecentLogbook("economy", 4, "暂无跑商记录。")}<div class='shop-actions'><button class='small-btn' onclick="showLogbook('economy')">查看完整跑商日志</button></div></div>`);
   }
   function showPharmacy() { currentView = "pharmacy"; const recipeHtml = recipes.map((r, i) => { const canCraft = canCraftRecipe(r); const materialText = Object.keys(r.materials).map(name => { const own = player.inventory[name] || 0; return `${name}(${own}/${r.materials[name]})`; }).join("，"); return `<div class="card"><h3>${r.name}</h3><div class="list-line">${r.effect}</div><div class="list-line">材料：${materialText}</div><button class="small-btn" ${canCraft ? "" : "disabled"} onclick="craftMedicine(${i})">炼制</button></div>`; }).join(""); setMainTitle("神农药房"); setMainContent(`${renderNoticeHtml()}<div class="status-grid">${recipeHtml || "<div class='card'>暂无药方</div>"}</div>`); }
-  function showTrain() { currentView = "train"; const unlockLevel = window.CULTIVATION_UNLOCK_LEVEL || 20; const unlocked = (player.level || 1) >= unlockLevel; const rows = Object.keys(CULTIVATION_CONFIG).map(key => { const cfg = CULTIVATION_CONFIG[key]; const level = getCultivationLevel(key); const node = getCultivationNode(key); const bonus = getCultivationBonus(key); const pct = Math.floor((getCultivationGrowthPercent(key) || 0) * 1000) / 10; const needExp = getCultivationUpgradeRequiredExp(key, level + 1); const progress = `${node.exp || 0} / ${needExp}`; const cost = !unlocked ? `未解锁（${unlockLevel}级）` : level >= cfg.maxLevel ? "已满级" : `${getCultivationCost(key)} 两`; return `<tr><td>${cfg.name}</td><td>${level} / ${cfg.maxLevel}<br><small>进度 ${progress}</small></td><td>${cfg.effectText}${bonus}${pct > 0 ? `（额外 ${pct}%）` : ""}</td><td>${cost}</td><td><button class="small-btn" ${!unlocked || level >= cfg.maxLevel ? "disabled" : ""} onclick="doCultivationUpgrade('${key}')">提升</button></td></tr>`; }).join(""); const summary = getCultivationSummary(); const lockText = unlocked ? `已解锁：你当前等级 ${player.level}。` : `未解锁：修炼系统需 ${unlockLevel} 级开启，你当前为 ${player.level} 级。`; const autoCap = window.__JH_LEVEL_SYSTEM__?.getAutoLevelCap?.() || 40; const manualNeed = window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(player.level) || 0; const manualEntry = player.level >= autoCap ? `<div class='shop-actions'><button class='small-btn' onclick='manualLevelUp()'>手动突破（需经验池 ${manualNeed}）</button></div>` : "<div class='list-line'>40级前自动升级，40级后在此页手动突破。</div>"; setMainTitle("修炼系统"); setMainContent(`${renderNoticeHtml()}<div class="status-grid"><div class="card"><h3>当前修炼总览</h3><div class="list-line">${lockText}</div><div class="list-line">总经验：${player.totalExp || 0}</div><div class="list-line">可支配经验池：${player.expReserve || 0}</div>${manualEntry}<div class="list-line">攻击修炼加成：+${summary.attack}</div><div class="list-line">防御修炼加成：+${summary.defense}</div><div class="list-line">气血修炼加成：+${summary.hp}</div><div class="list-line">内力修炼加成：+${summary.mp}</div><div class="list-line">抗性修炼加成：+${summary.resist}</div><div class="list-line">修炼额外战力：${Math.floor((summary.attack + summary.defense + summary.hp / 2 + summary.mp / 2) * 3)}</div></div></div><div class="table-box"><table><thead><tr><th>修炼项目</th><th>等级</th><th>当前效果</th><th>升级花费</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
+  function showTrain() { currentView = "train"; const unlockLevel = window.CULTIVATION_UNLOCK_LEVEL || 20; const unlocked = (player.level || 1) >= unlockLevel; const rows = Object.keys(CULTIVATION_CONFIG).map(key => { const cfg = CULTIVATION_CONFIG[key]; const level = getCultivationLevel(key); const node = getCultivationNode(key); const bonus = getCultivationBonus(key); const pct = Math.floor((getCultivationGrowthPercent(key) || 0) * 1000) / 10; const needExp = getCultivationUpgradeRequiredExp(key, level + 1); const progress = `${node.exp || 0} / ${needExp}`; const cost = !unlocked ? `未解锁（${unlockLevel}级）` : level >= cfg.maxLevel ? "已满级" : `${getCultivationCost(key)} 两`; return `<tr><td>${cfg.name}</td><td>${level} / ${cfg.maxLevel}<br><small>进度 ${progress}</small></td><td>${cfg.effectText}${bonus}${pct > 0 ? `（额外 ${pct}%）` : ""}</td><td>${cost}</td><td><button class="small-btn" ${!unlocked || level >= cfg.maxLevel ? "disabled" : ""} onclick="doCultivationUpgrade('${key}')">提升</button></td></tr>`; }).join(""); const summary = getCultivationSummary(); const lockText = unlocked ? `已解锁：你当前等级 ${player.level}。` : `未解锁：修炼系统需 ${unlockLevel} 级开启，你当前为 ${player.level} 级。`; const autoCap = window.__JH_LEVEL_SYSTEM__?.getAutoLevelCap?.() || 40; const manualNeed = window.__JH_LEVEL_SYSTEM__?.getRequiredExpForLevel?.(player.level) || 0; const manualEntry = player.level >= autoCap ? `<div class='shop-actions'><button class='small-btn' onclick='manualLevelUp()'>手动突破（需经验池 ${manualNeed}）</button></div>` : "<div class='list-line'>40级前自动升级，40级后可在状态页或此页手动突破。</div>"; setMainTitle("修炼系统"); setMainContent(`${renderNoticeHtml()}<div class="status-grid"><div class="card"><h3>当前修炼总览</h3><div class="list-line">${lockText}</div><div class="list-line">总经验：${player.totalExp || 0}</div><div class="list-line">可支配经验池：${player.expReserve || 0}</div>${manualEntry}<div class="list-line">攻击修炼加成：+${summary.attack}</div><div class="list-line">防御修炼加成：+${summary.defense}</div><div class="list-line">气血修炼加成：+${summary.hp}</div><div class="list-line">内力修炼加成：+${summary.mp}</div><div class="list-line">抗性修炼加成：+${summary.resist}</div><div class="list-line">修炼额外战力：${Math.floor((summary.attack + summary.defense + summary.hp / 2 + summary.mp / 2) * 3)}</div></div></div><div class="table-box"><table><thead><tr><th>修炼项目</th><th>等级</th><th>当前效果</th><th>升级花费</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table></div>`); }
 
 
   function showTask() {
