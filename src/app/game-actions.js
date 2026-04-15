@@ -1191,7 +1191,16 @@
 
   function debugSetLevel(level) {
     const targetLevel = Math.max(1, Math.floor(Number(level) || 1));
+    const levelSystem = window.__JH_LEVEL_SYSTEM__;
+    const getRequiredExpForLevel = typeof levelSystem?.getRequiredExpForLevel === "function"
+      ? levelSystem.getRequiredExpForLevel
+      : (lv) => Math.max(100, Math.floor(Number(lv) || 1) * 100);
+    let syncedTotalExp = 0;
+    for (let lv = 1; lv < targetLevel; lv += 1) {
+      syncedTotalExp += Math.max(0, Number(getRequiredExpForLevel(lv)) || 0);
+    }
     player.level = targetLevel;
+    player.totalExp = Math.floor(syncedTotalExp);
     player.expReserve = 0;
     player.hp = getMaxHp();
     player.mp = getMaxMp();
