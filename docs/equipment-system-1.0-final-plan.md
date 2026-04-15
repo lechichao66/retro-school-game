@@ -15,7 +15,7 @@
 
 ---
 
-## 第一阶段（仅基础结构）
+## 第一阶段（仅基础结构，严格封板）
 
 ### 1.1 阶段目标（只做这 5 项）
 
@@ -104,9 +104,9 @@ window.__JH_DATA__.equipLevelBands = [
 
 > `gradeSellMultiplier` 是 1.0 经济公式唯一倍率来源。
 
-### 1.7 卖价公式（1.0 正式版）
+### 1.7 卖价公式（1.0 先冻结定义，不做经济接入）
 
-第一阶段确定并冻结卖价公式为：
+第一阶段只定义并冻结公式，不接入背包/商店流程：
 
 ```text
 equipSellPrice = levelBandBasePrice × gradeSellMultiplier
@@ -135,6 +135,12 @@ equipSellPrice = levelBandBasePrice × gradeSellMultiplier
 - `equip-quality-config.js` 的每个品级都有 `gradeSellMultiplier`。
 - 旧存档载入后不会因字段缺失报错。
 - 未触碰白名单外文件。
+- 未改动 `ui-render.js` / `utils.js` / `economy-bag.js` / `selectors.js` / battle 相关文件。
+
+### 1.10 第一阶段封板后才能进入第二阶段
+
+- 阶段验收项全部通过后，先冻结分支与数据合同说明。
+- 未封板前禁止提前做 tooltip、卖价联动、扩展字段落地。
 
 ---
 
@@ -186,6 +192,7 @@ equipSellPrice = levelBandBasePrice × gradeSellMultiplier
 - 售价统一由 `levelBandBasePrice × gradeSellMultiplier` 计算。
 - 词缀与特效仍不计价。
 - 若缺少等级带或品级配置，回退到安全默认值并记录日志。
+- 明确不使用 `affixValueFactor` / `specialReserveFactor`。
 
 ### 3.3 第三阶段边界
 
@@ -244,4 +251,3 @@ equipSellPrice = levelBandBasePrice × gradeSellMultiplier
 2. **schema 变更摘要**（新增字段、默认值、兼容策略）
 3. **玩法影响说明**（玩家体感是否变化）
 4. **下一步推荐实施项**（下一阶段的最小入口）
-
