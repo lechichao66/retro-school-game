@@ -374,17 +374,28 @@
       .filter(name => tab === "all" || classify(name) === tab)
       .map(name => {
         const equipInfo = equipData[name] ? getEquipDisplayParts(name) : null;
+        const qty = Number(player.inventory[name] || 0);
+        const unitSell = getItemSellPrice(name);
+        const totalSell = unitSell * qty;
+        const isTask = getItemTypeText(name) === "任务物品";
+        const canSell = !isTask;
+        const quickTooltip = equipInfo
+          ? `品级：${equipInfo.qualityText}｜词缀：${equipInfo.affixShort}`
+          : getItemDetailText(name);
         return `
           <tr>
             <td>
-              <b>${equipInfo ? equipInfo.titleHtml : name}</b><br>
+              <b title="${quickTooltip}">${equipInfo ? equipInfo.titleHtml : name}</b><br>
               <small style="color:#666;">${getItemDetailText(name)}</small>
             </td>
-            <td>${player.inventory[name]}</td>
+            <td>${qty}</td>
             <td>${getItemTypeText(name)}</td>
+            <td>${canSell ? `${unitSell} / ${totalSell}` : "-"}</td>
             <td>
               <button class="small-btn" onclick="useItem('${name}')">使用/查看</button>
               ${equipData[name] ? `<button class="small-btn" onclick="equipItem('${name}')">穿戴</button>` : ""}
+              ${canSell ? `<button class="small-btn" onclick="sellItem('${name}', 1)">卖1个</button>` : ""}
+              ${canSell && qty > 1 ? `<button class="small-btn" onclick="sellItem('${name}', ${qty})">全卖</button>` : ""}
             </td>
           </tr>
         `;
@@ -394,6 +405,11 @@
     setMainContent(`
       ${renderNoticeHtml()}
       <div class="shop-actions">${tabs.map(([key, label]) => `<button class="action-btn" style="background:${tab === key ? "#800000" : "#f2e9d8"}; color:${tab === key ? "#fff" : "#222"};" onclick="setBagTab('${key}')">${label}</button>`).join("")}</div>
+      <div class="shop-actions" style="margin-top:8px;">
+        <button class="action-btn" onclick="sellBatchByMode('junk')">一键卖杂物</button>
+        <button class="action-btn" onclick="sellBatchByMode('lowEquip')">一键卖低级装备</button>
+        <div class="notice" style="margin:0;">列表主识别为装备名称颜色与光感，品级名称仅在悬浮信息与详情页显示。</div>
+      </div>
       <div class="table-box scroll-box" style="max-height:460px;">
         <table>
           <thead>
@@ -401,11 +417,12 @@
               <th>物品</th>
               <th>数量</th>
               <th>类型</th>
+              <th>卖价（单件/总价）</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            ${items || "<tr><td colspan='4'>该分类空空如也</td></tr>"}
+            ${items || "<tr><td colspan='5'>该分类空空如也</td></tr>"}
           </tbody>
         </table>
       </div>

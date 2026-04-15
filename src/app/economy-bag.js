@@ -153,12 +153,109 @@
     showPharmacy();
   }
 
+  function isEquippedItem(name) {
+    const equips = player?.equips || {};
+    return Object.values(equips).includes(name);
+  }
+
+  function canSellItem(name) {
+    if (!hasItem(name, 1)) return { ok: false, reason: "物品不存在" };
+    if (isEquippedItem(name)) return { ok: false, reason: "已装备物品不可直接出售，请先卸下" };
+    if (getItemTypeText(name) === "任务物品") return { ok: false, reason: "任务物品不可出售" };
+    return { ok: true, reason: "" };
+  }
+
+  function sellItem(name, count = 1) {
+    const qty = Math.max(1, Math.floor(Number(count) || 1));
+    const check = canSellItem(name);
+    if (!check.ok) {
+      setNotice("error", `出售失败：${check.reason}`);
+      showBag();
+      return false;
+    }
+
+    const own = Number(player.inventory?.[name] || 0);
+    const safeQty = Math.min(own, qty);
+    if (safeQty <= 0) {
+      setNotice("error", "出售失败：数量不足。");
+      showBag();
+      return false;
+    }
+
+    const unitPrice = getItemSellPrice(name);
+    const gain = unitPrice * safeQty;
+    removeItem(name, safeQty);
+    player.money += gain;
+
+    addLog("event", `你出售了 ${name} x${safeQty}，获得 ${gain} 两银子。`);
+    setNotice("success", `出售成功：${name} x${safeQty}（+${gain} 两）`);
+    updateAll();
+    showBag();
+    return true;
+  }
+
+  function sellBatchByMode(mode) {
+    const cfg = window.__JH_DATA__?.inventorySaleConfig || {};
+    const quickCfg = cfg.quickSell || {};
+    const protectedSet = new Set(Array.isArray(quickCfg.protectedItems) ? quickCfg.protectedItems : []);
+
+    const entries = Object.entries(player.inventory || {}).filter(([, qty]) => Number(qty) > 0);
+    const selected = entries.filter(([name]) => {
+      const check = canSellItem(name);
+      if (!check.ok) return false;
+      if (protectedSet.has(name)) return false;
+
+      if (mode === "junk") {
+        const junkTypes = Array.isArray(quickCfg.junkTypes) ? quickCfg.junkTypes : ["材料"];
+        return junkTypes.includes(getItemTypeText(name));
+      }
+
+      if (mode === "lowEquip") {
+        const equip = equipData?.[name];
+        if (!equip) return false;
+        const qKey = equip.quality || "common";
+        const lowQ = Array.isArray(quickCfg.lowEquipQualityKeys) ? quickCfg.lowEquipQualityKeys : ["common", "fine"];
+        return lowQ.includes(qKey);
+      }
+
+      return false;
+    });
+
+    if (!selected.length) {
+      setNotice("info", mode === "junk" ? "当前没有可一键出售的杂物。" : "当前没有可一键出售的低级装备。");
+      showBag();
+      return;
+    }
+
+    let totalMoney = 0;
+    let totalCount = 0;
+    const soldNames = [];
+    selected.forEach(([name, qty]) => {
+      const sellQty = Math.max(0, Math.floor(Number(qty) || 0));
+      if (sellQty <= 0) return;
+      const unit = getItemSellPrice(name);
+      const gain = unit * sellQty;
+      removeItem(name, sellQty);
+      totalMoney += gain;
+      totalCount += sellQty;
+      soldNames.push(`${name}x${sellQty}`);
+    });
+
+    player.money += totalMoney;
+    addLog("event", `你执行了一键出售：${soldNames.join("、")}，共获得 ${totalMoney} 两银子。`);
+    setNotice("success", `一键出售完成：${totalCount} 件（+${totalMoney} 两）`);
+    updateAll();
+    showBag();
+  }
+
   g.__JH_ECONOMY_BAG__ = {
     useItem,
     equipItem,
     unequipSlot,
     buyShopItem,
     buyMarketItem,
-    craftMedicine
+    craftMedicine,
+    sellItem,
+    sellBatchByMode
   };
 })(window);
