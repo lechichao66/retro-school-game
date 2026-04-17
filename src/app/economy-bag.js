@@ -55,6 +55,16 @@
       return;
     }
 
+    const equipCheck = validateEquipConditions(equip);
+    if (!equipCheck.ok) {
+      const requiredLevel = equipCheck.requiredLevel;
+      const currentLevel = equipCheck.currentLevel;
+      addLog("error", `【装备失败】等级不足，无法装备 ${name}。需要等级 ${requiredLevel}，当前等级 ${currentLevel}。`);
+      setNotice("error", `等级不足，无法装备。需要等级 ${requiredLevel}，当前等级 ${currentLevel}。`);
+      showBag();
+      return;
+    }
+
     const slot = equip.slot;
     const oldEquip = player.equips[slot];
 
@@ -72,6 +82,27 @@
     setNotice("success", `装备成功：${name}`);
     updateAll();
     showBag();
+  }
+
+  function validateEquipConditions(equip) {
+    const requiredLevel = Math.max(1, Math.floor(Number(equip?.requiredLevel) || 1));
+    const currentLevel = Math.max(1, Math.floor(Number(player?.level) || 1));
+    if (currentLevel < requiredLevel) {
+      return {
+        ok: false,
+        reason: "level",
+        requiredLevel,
+        currentLevel
+      };
+    }
+
+    // 预留扩展：门派、部位、性别及其他条件可在后续版本接入。
+    return {
+      ok: true,
+      reason: "",
+      requiredLevel,
+      currentLevel
+    };
   }
 
   function unequipSlot(slot) {
